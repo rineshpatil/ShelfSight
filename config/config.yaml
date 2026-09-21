@@ -1,0 +1,34 @@
+system_prompt: "You are a helpful shopping assistant. The user is in India."
+
+engines:
+  - name: gemini
+    model: gemini-2.5-flash        # must return groundingChunks; verify with scripts/smoke_gemini.py
+    modes: [web, no_web]
+    min_interval_s: 6.5            # free tier is ~10 requests/minute
+    temperature: 0.7
+  - name: groq
+    model: llama-3.3-70b-versatile # verify the id at https://console.groq.com/docs/models
+    modes: [no_web]
+    min_interval_s: 2.5
+    temperature: 0.7
+
+extractor:
+  model: gemini-2.5-flash
+  version: "ext-1"
+
+joiner_version: "join-1"
+
+searxng:
+  url: http://localhost:8888
+  engines: [google, bing, brave, duckduckgo]
+  probe_top_n: 20
+  max_queries_per_response: 3
+  min_interval_s: 1.5
+
+eligible_top_n: 10
+
+domain_types:
+  marketplace: [nykaa.com, amazon.in, flipkart.com, myntra.com, purplle.com, tirabeauty.com]
+  reddit: [reddit.com]
+  youtube: [youtube.com, youtu.be]
+  media: [vogue.in, elle.in, femina.in, cosmopolitan.in, healthshots.com, ndtv.com]
