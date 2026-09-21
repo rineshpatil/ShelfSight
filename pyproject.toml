@@ -12,6 +12,9 @@ dependencies = [
   "pyyaml>=6.0",
 ]
 
+[project.scripts]
+shelfsight = "shelfsight.cli:main"
+
 [dependency-groups]
 dev = ["pytest>=8", "respx>=0.21"]
 
