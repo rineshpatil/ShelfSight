@@ -12,8 +12,10 @@ from shelfsight.text import normalize
 class ExtractedBrand(BaseModel):
     name: str
     rank: int | None = None
-    is_recommended: bool
-    sentiment: Literal["positive", "neutral", "negative"]
+    # Optional on purpose: Bedrock doesn't enforce the tool schema, and on long answers Nova drops
+    # fields for a brand. The brand is still named; "unknown" beats losing the whole answer.
+    is_recommended: bool | None = None
+    sentiment: Literal["positive", "neutral", "negative"] | None = None
     claims: list[str] = []
 
 
@@ -31,7 +33,7 @@ SCHEMA = {
             "is_recommended": {"type": "BOOLEAN"},
             "sentiment": {"type": "STRING", "enum": ["positive", "neutral", "negative"]},
             "claims": {"type": "ARRAY", "items": {"type": "STRING"}},
-        }, "required": ["name", "is_recommended", "sentiment", "claims"]}},
+        }, "required": ["name", "rank", "is_recommended", "sentiment", "claims"]}},  # rank required: Nova omits optional fields
         "answer_type": {"type": "STRING", "enum": ["list", "single", "comparison", "refusal", "other"]},
     },
     "required": ["brands", "answer_type"],
@@ -41,6 +43,7 @@ PROMPT = """You extract brand mentions from a shopping assistant's answer.
 Known brands in this category: {brands}.
 List every brand the answer names, known or not, in the order the answer presents them.
 rank: 1 for the first brand presented as a pick, 2 for the next, and so on; null if the brand is only mentioned in passing.
+In a comparison, the brand the answer favours is rank 1 and the other compared brands follow in order of preference.
 is_recommended: true only if the answer suggests the buyer choose it.
 sentiment: how the answer describes the brand.
 claims: short product claims attached to the brand, lowercase, e.g. "no white cast", "spf 50".

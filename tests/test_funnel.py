@@ -48,7 +48,7 @@ def cite(rid, brand):
 def ment(rid, brand, rank=None, rec=None, mode="web"):
     return dict(response_id=rid, workspace=WS, run_date=D, engine="gemini", mode=mode, prompt_id=f"P-{rid}",
                 brand_id=brand, brand_raw=brand, rank=rank, is_recommended=rec, claims=[],
-                source="none" if brand is None else "llm", extractor_version="ext-1")
+                source="none" if brand is None else "llm", extractor_version=load_settings().extractor.version)
 
 
 @pytest.fixture
@@ -84,6 +84,16 @@ def test_run_funnel_diagnoses_each_response_and_brand(store):
     assert (w1_dk["is_eligible"], w1_dk["is_cited"], w1_dk["eligible_n"]) == (True, False, 1)
     assert (w2_dk["is_eligible"], w2_dk["is_cited"]) == (None, False)
     assert (w4_dk["is_eligible"], w4_dk["is_cited"]) == (None, None)
+
+
+def test_second_batch_on_the_same_day_is_diagnosed(store):
+    ws, s = load_workspace(WS), load_settings()
+    run_funnel(store=store, workspace=ws, settings=s, run_date=D)
+    store.write("raw_responses", [resp("N2", "no_web")])
+    store.write("mentions", [ment("N2", "lakme", 1, True, mode="no_web")])
+    out = run_funnel(store=store, workspace=ws, settings=s, run_date=D)
+    assert (out["status"], out["rows"]) == ("ok", 9)  # only the new answer; the earlier 4 aren't repeated
+    assert store.rows("SELECT count(DISTINCT response_id) AS n FROM funnel") == [{"n": 5}]
 
 
 def test_run_funnel_is_idempotent_per_version(store):

@@ -1,10 +1,17 @@
 system_prompt: "You are a helpful shopping assistant. The user is in India."
 
 engines:
+  - name: nova
+    model: us.amazon.nova-2-lite-v1:0  # grounding is US-only, US CRIS profile; verify with scripts/smoke_nova.py
+    region: us-east-1
+    modes: [web, no_web]
+    min_interval_s: 1.0
+    temperature: 0.7
   - name: gemini
     model: gemini-2.5-flash        # must return groundingChunks; verify with scripts/smoke_gemini.py
     modes: [web, no_web]
     min_interval_s: 6.5            # free tier is ~10 requests/minute
+    max_prompts: 10                # free tier is ~20 requests/day: 10 prompts × 2 modes
     temperature: 0.7
   - name: groq
     model: llama-3.3-70b-versatile # verify the id at https://console.groq.com/docs/models
@@ -13,8 +20,10 @@ engines:
     temperature: 0.7
 
 extractor:
-  model: gemini-2.5-flash
-  version: "ext-1"
+  engine: nova                     # moved off Gemini so its free daily cap goes to answers
+  model: us.amazon.nova-2-lite-v1:0
+  region: us-east-1
+  version: "ext-2"                 # ext-2: Nova extractor, comparison winner gets rank 1
 
 joiner_version: "join-1"
 

@@ -93,6 +93,17 @@ def test_probe_failure_keeps_the_answer(tmp_path):
     assert store.rows("SELECT status FROM raw_responses") == [{"status": "ok"}]
 
 
+def test_max_prompts_caps_an_engine_to_the_top_prompts(tmp_path):
+    engine = EngineCfg(name="gemini", model="g", modes=["no_web"], min_interval_s=0, max_prompts=2)
+    s = load_settings().model_copy(update={"engines": [engine]})
+    fake = FakeEngine(NO_WEB, NO_WEB)
+    run_row = run_collect(settings=s, workspace=load_workspace("dotandkey"),
+                          prompts=[prompt("P1"), prompt("P2"), prompt("P3")], engines={"gemini": fake},
+                          probe=FakeProbe(), store=Store(tmp_path), run_date=D)
+    assert [c[0] for c in fake.calls] == ["question P1", "question P2"]
+    assert (run_row["planned_calls"], run_row["coverage"], run_row["status"]) == (2, 1.0, "finished")
+
+
 def test_interrupted_run_still_persists_collected_answers(tmp_path):
     store = Store(tmp_path)
     with pytest.raises(KeyboardInterrupt):

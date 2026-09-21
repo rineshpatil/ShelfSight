@@ -17,6 +17,11 @@ def test_pacer_sleeps_only_the_remaining_gap():
     assert slept == [3.0]
 
 
+def test_retryable_error_keeps_enough_body_to_name_the_quota():
+    body = "x" * 500 + "quotaId: GenerateRequestsPerDayPerProjectPerModel-FreeTier"
+    assert "PerDayPerProjectPerModel-FreeTier" in str(RetryableError(429, body))
+
+
 @respx.mock
 def test_4xx_other_than_429_is_not_retried():
     route = respx.post("https://x.test/").mock(return_value=httpx.Response(400, text="bad"))

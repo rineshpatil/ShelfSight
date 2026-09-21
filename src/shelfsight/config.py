@@ -39,22 +39,28 @@ class Workspace(BaseModel):
 
 
 class EngineCfg(BaseModel):
-    name: Literal["gemini", "groq"]
+    name: Literal["gemini", "groq", "nova"]
     model: str
     modes: list[Mode]
     min_interval_s: float
     temperature: float = 0.7
+    region: str | None = None       # AWS region, nova only
+    max_prompts: int | None = None  # only the top-N prompts (priority order), to fit a free-tier daily cap
 
     @model_validator(mode="after")
-    def _groq_is_no_web_only(self):
+    def _check_engine(self):
         if self.name == "groq" and "web" in self.modes:
             raise ValueError("groq has no web search tool; use modes: [no_web]")
+        if self.name == "nova" and not self.region:
+            raise ValueError("nova needs a region (Bedrock web grounding is US-only)")
         return self
 
 
 class ExtractorCfg(BaseModel):
+    engine: Literal["gemini", "nova"] = "gemini"
     model: str
     version: str
+    region: str | None = None  # AWS region, nova only
 
 
 class SearxngCfg(BaseModel):

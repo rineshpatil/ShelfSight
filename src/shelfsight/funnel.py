@@ -39,6 +39,9 @@ resp AS (
     FROM raw_responses
     WHERE workspace = $ws AND run_date = $d AND status = 'ok'
       AND response_id IN (SELECT response_id FROM extracted)
+      AND response_id NOT IN (SELECT response_id FROM funnel
+                              WHERE workspace = $ws AND run_date = $d
+                                AND extractor_version = $ev AND joiner_version = $jv)
 ),
 probed AS (SELECT DISTINCT response_id FROM candidates WHERE workspace = $ws AND run_date = $d),
 elig AS (
@@ -72,16 +75,17 @@ LEFT JOIN ment m ON m.response_id = r.response_id AND m.brand_id = b.brand_id
 
 
 def run_funnel(*, store: Store, workspace: Workspace, settings: Settings, run_date: date) -> dict:
-    """Diagnose every extracted response × tracked brand for one day. Idempotent per (extractor, joiner) version."""
+    """Diagnose every extracted, not-yet-diagnosed response × tracked brand for one day.
+
+    Idempotent per response and (extractor, joiner) version, so a second collection on the same day
+    is diagnosed on the next run and earlier answers are never duplicated.
+    """
     ev, jv = settings.extractor.version, settings.joiner_version
-    existing = store.rows("SELECT 1 FROM funnel WHERE workspace = $ws AND run_date = $d "
-                          "AND extractor_version = $ev AND joiner_version = $jv LIMIT 1",
-                          {"ws": workspace.id, "d": run_date, "ev": ev, "jv": jv})
-    if existing:
-        return {"status": "skipped", "rows": 0, "client": {}}
-    joined = store.rows(JOIN_SQL, {"ws": workspace.id, "d": run_date, "ev": ev,
+    joined = store.rows(JOIN_SQL, {"ws": workspace.id, "d": run_date, "ev": ev, "jv": jv,
                                    "top_n": settings.eligible_top_n,
                                    "brand_ids": [b.id for b in workspace.brands]})
+    if not joined:
+        return {"status": "skipped", "rows": 0, "client": {}}
     client_id = workspace.client.id
     out, client_counts = [], Counter()
     for r in joined:

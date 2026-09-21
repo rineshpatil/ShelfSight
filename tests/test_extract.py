@@ -5,7 +5,7 @@ from pathlib import Path
 from shelfsight.brand_match import dictionary_hits
 from shelfsight.config import load_workspace
 from shelfsight.engines.base import RetryableError
-from shelfsight.extract import Extraction, extract_mentions, reconcile, run_extract
+from shelfsight.extract import PROMPT, Extraction, extract_mentions, reconcile, run_extract
 from shelfsight.store import Store
 
 D = date(2026, 9, 21)
@@ -70,6 +70,21 @@ def test_extract_mentions_prompts_with_known_brands_and_answer():
     extract_mentions(response(), llm, load_workspace("dotandkey").brands, "ext-1")
     assert "Dot & Key, Minimalist" in llm.prompts[0]
     assert "Re'equil Oil Control Sunscreen" in llm.prompts[0]
+
+
+def test_brand_missing_optional_fields_does_not_sink_the_answer():
+    # Seen live: on a 14-brand answer Nova dropped is_recommended and sentiment for one brand.
+    out = {"answer_type": "list", "brands": [
+        {"name": "Minimalist", "rank": 1, "is_recommended": True, "sentiment": "positive", "claims": []},
+        {"name": "The Element's", "rank": 14, "claims": ["brightening"]}]}
+    rows = extract_mentions(response(), FakeLLM(out), load_workspace("dotandkey").brands, "ext-2")
+    elem = next(r for r in rows if r["brand_raw"] == "The Element's")
+    assert (elem["brand_id"], elem["rank"], elem["is_recommended"], elem["sentiment"]) == (None, 14, None, None)
+
+
+def test_prompt_ranks_the_favoured_brand_in_a_comparison():
+    # Without this rule the live run gave the comparison winner rank null, which the funnel reads as "not top 3".
+    assert "In a comparison, the brand the answer favours is rank 1" in PROMPT
 
 
 def test_run_extract_is_idempotent_and_survives_bad_output(tmp_path):

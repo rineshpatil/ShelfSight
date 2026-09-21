@@ -9,7 +9,7 @@ class RetryableError(Exception):
     """HTTP 429 or 5xx. Retried; a 429 that persists means the free-tier quota is gone for this run."""
 
     def __init__(self, status: int, body: str):
-        super().__init__(f"HTTP {status}: {body[:200]}")
+        super().__init__(f"HTTP {status}: {body[:2000]}")  # long enough to keep the quota id Google puts late in the body
         self.status = status
 
 

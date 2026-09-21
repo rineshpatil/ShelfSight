@@ -35,7 +35,8 @@ def run_collect(*, settings: Settings, workspace: Workspace, prompts: list[Promp
     first (active_prompts does this), so running out of quota costs the least important ones.
     """
     run_id, started = uuid.uuid4().hex, utcnow()
-    plan = [(p, cfg, mode) for p in prompts for cfg in settings.engines if cfg.name in engines for mode in cfg.modes]
+    plan = [(p, cfg, mode) for i, p in enumerate(prompts) for cfg in settings.engines
+            if cfg.name in engines and (cfg.max_prompts is None or i < cfg.max_prompts) for mode in cfg.modes]
     responses, citations, candidates = [], [], []
     exhausted: set[str] = set()
     ok = errors = skipped = probe_errors = tokens_in = tokens_out = 0
