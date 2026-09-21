@@ -1,0 +1,54 @@
+{
+  "name": "ShelfSight · Weekly digest",
+  "nodes": [
+    {
+      "id": "b1e1c0de-0002-4000-8000-000000000001",
+      "name": "Monday 09:00 IST",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0],
+      "parameters": {"rule": {"interval": [{"field": "cronExpression", "expression": "0 9 * * 1"}]}}
+    },
+    {
+      "id": "b1e1c0de-0002-4000-8000-000000000002",
+      "name": "Latest report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [240, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "parameters": {
+        "method": "GET",
+        "url": "http://host.docker.internal:8765/report",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {"parameters": [{"name": "workspace", "value": "__SHELFSIGHT_WORKSPACE__"}]},
+        "options": {"response": {"response": {"responseFormat": "text", "outputPropertyName": "report"}}}
+      },
+      "credentials": {"httpHeaderAuth": {"id": "__BRIDGE_CREDENTIAL_ID__", "name": "ShelfSight bridge token"}}
+    },
+    {
+      "id": "b1e1c0de-0002-4000-8000-000000000003",
+      "name": "Email digest",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [480, 0],
+      "parameters": {
+        "fromEmail": "__SHELFSIGHT_REPORT_TO__",
+        "toEmail": "__SHELFSIGHT_REPORT_TO__",
+        "subject": "ShelfSight weekly digest · __SHELFSIGHT_WORKSPACE__",
+        "emailFormat": "text",
+        "text": "={{ $json.report }}\n\nThis is the latest daily diagnosis. Week-over-week change tracking arrives with the metrics work.",
+        "options": {}
+      },
+      "credentials": {"smtp": {"id": "__SMTP_CREDENTIAL_ID__", "name": "ShelfSight Gmail SMTP"}}
+    }
+  ],
+  "connections": {
+    "Monday 09:00 IST": {"main": [[{"node": "Latest report", "type": "main", "index": 0}]]},
+    "Latest report": {"main": [[{"node": "Email digest", "type": "main", "index": 0}]]}
+  },
+  "settings": {"executionOrder": "v1", "timezone": "Asia/Kolkata", "errorWorkflow": "__ERROR_WORKFLOW_ID__"}
+}
