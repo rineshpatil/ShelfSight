@@ -1,0 +1,7 @@
+use_default_settings: true
+server:
+  secret_key: "local-dev-only-change-me"  # Plan 3 injects a real one from SSM
+  limiter: false                           # the collector is the only client
+  image_proxy: false
+search:
+  formats: [html, json]                    # the JSON API is off by default

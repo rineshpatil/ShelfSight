@@ -1,0 +1,10 @@
+# Local SearxNG for the retrieval probe.
+# Start: docker compose -f infra/searxng/docker-compose.yml up -d
+services:
+  searxng:
+    image: searxng/searxng:latest   # ponytail: floating tag; pin a dated tag once a working one is known
+    ports:
+      - "127.0.0.1:8888:8080"      # loopback only: never expose the metasearch publicly
+    volumes:
+      - ./settings.yml:/etc/searxng/settings.yml:ro
+    restart: unless-stopped
