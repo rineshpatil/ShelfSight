@@ -10,6 +10,8 @@ dependencies = [
   "tldextract>=5.1",
   "duckdb>=1.1",
   "pyyaml>=6.0",
+  "boto3>=1.43.98",
+  "botocore[crt]>=1.43.98",
 ]
 
 [project.scripts]
