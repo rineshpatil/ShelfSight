@@ -75,7 +75,28 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("--date", type=date.fromisoformat, default=None, help="IST run date; default today")
         p.add_argument("--prompts", default="data/prompts_seed.csv")
         p.add_argument("--limit", type=int, default=None, help="collect: only the first N prompts")
+    serve = sub.add_parser("serve", help="HTTP bridge for n8n on 127.0.0.1 (needs SHELFSIGHT_BRIDGE_TOKEN)")
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8765)
     args = ap.parse_args(argv)
+
+    if args.cmd == "serve":
+        token = os.environ.get("SHELFSIGHT_BRIDGE_TOKEN")
+        if not token:
+            print("error: set SHELFSIGHT_BRIDGE_TOKEN; the bridge never runs without a token", file=sys.stderr)
+            return 2
+        from shelfsight.serve import make_server, run_pipeline
+
+        def pipeline(workspace, limit):
+            return run_pipeline(workspace, limit, config=args.config, lake=args.lake)
+
+        server = make_server(token, pipeline=pipeline, host=args.host, port=args.port)
+        print(f"shelfsight bridge on http://{args.host}:{args.port} (n8n: http://host.docker.internal:{args.port})")
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            pass
+        return 0
 
     settings, ws, store = load_settings(args.config), load_workspace(args.workspace), Store(args.lake)
     day = args.date or today_ist()

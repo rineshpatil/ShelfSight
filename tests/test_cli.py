@@ -51,6 +51,12 @@ def test_build_llm_follows_extractor_engine(monkeypatch):
         assert isinstance(build_llm(gem, c), GeminiEngine)
 
 
+def test_serve_refuses_to_start_without_a_token(monkeypatch, capsys):
+    monkeypatch.delenv("SHELFSIGHT_BRIDGE_TOKEN", raising=False)
+    assert main(["serve"]) == 2
+    assert "SHELFSIGHT_BRIDGE_TOKEN" in capsys.readouterr().err
+
+
 def test_report_on_empty_lake(tmp_path, capsys):
     assert main(["--lake", str(tmp_path), "report", "--workspace", "dotandkey", "--date", "2026-09-21"]) == 0
     assert "No funnel rows" in capsys.readouterr().out
