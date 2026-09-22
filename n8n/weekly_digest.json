@@ -10,6 +10,14 @@
       "parameters": {"rule": {"interval": [{"field": "cronExpression", "expression": "0 9 * * 1"}]}}
     },
     {
+      "id": "b1e1c0de-0002-4000-8000-000000000004",
+      "name": "Run now",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 200],
+      "parameters": {}
+    },
+    {
       "id": "b1e1c0de-0002-4000-8000-000000000002",
       "name": "Latest report",
       "type": "n8n-nodes-base.httpRequest",
@@ -48,6 +56,7 @@
   ],
   "connections": {
     "Monday 09:00 IST": {"main": [[{"node": "Latest report", "type": "main", "index": 0}]]},
+    "Run now": {"main": [[{"node": "Latest report", "type": "main", "index": 0}]]},
     "Latest report": {"main": [[{"node": "Email digest", "type": "main", "index": 0}]]}
   },
   "settings": {"executionOrder": "v1", "timezone": "Asia/Kolkata", "errorWorkflow": "__ERROR_WORKFLOW_ID__"}

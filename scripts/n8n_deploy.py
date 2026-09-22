@@ -68,8 +68,13 @@ def main() -> int:
                                                    "data": {"name": "X-ShelfSight-Token", "value": token}}
                              ).raise_for_status().json()["id"]
         print(f"created credential '{BRIDGE_CRED}'")
-    smtp_id = creds.get(SMTP_CRED, {}).get("id")
-    print(f"SMTP credential '{SMTP_CRED}': {'linked' if smtp_id else 'NOT FOUND - email nodes left unlinked'}")
+    smtp = [c for c in creds.values() if c["type"] == "smtp"]
+    chosen = creds.get(SMTP_CRED) or (smtp[0] if len(smtp) == 1 else None)  # the name, else the only SMTP one
+    smtp_id = chosen["id"] if chosen else None
+    if chosen:
+        print(f"SMTP credential: linked '{chosen['name']}'")
+    else:
+        print(f"SMTP credential: NOT FOUND ({len(smtp)} SMTP credentials; name one '{SMTP_CRED}') - email nodes left unlinked")
 
     existing = {w["name"]: w for w in api.get("/workflows").raise_for_status().json()["data"]}
     values = {"__BRIDGE_CREDENTIAL_ID__": bridge_id, "__SHELFSIGHT_REPORT_TO__": report_to,
@@ -87,7 +92,7 @@ def main() -> int:
             print(f"created  {wf['name']} ({wid})")
         ids[name] = wid
         values["__ERROR_WORKFLOW_ID__"] = ids[ERROR_WORKFLOW]
-    for name in SCHEDULED:
+    for name in (ERROR_WORKFLOW, *SCHEDULED):  # n8n 2.x won't run an error workflow that isn't active
         r = api.post(f"/workflows/{ids[name]}/activate")
         print(f"activate {name}: {'ok' if r.is_success else f'FAILED {r.status_code} {r.text[:300]}'}")
     print(f"\nOpen n8n: {env('N8N_URL', 'http://localhost:5679')}/home/workflows")

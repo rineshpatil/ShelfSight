@@ -10,6 +10,14 @@
       "parameters": {"rule": {"interval": [{"field": "cronExpression", "expression": "0 6 * * *"}]}}
     },
     {
+      "id": "b1e1c0de-0001-4000-8000-000000000006",
+      "name": "Run now",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 200],
+      "parameters": {}
+    },
+    {
       "id": "b1e1c0de-0001-4000-8000-000000000002",
       "name": "Run pipeline",
       "type": "n8n-nodes-base.httpRequest",
@@ -83,6 +91,7 @@
   ],
   "connections": {
     "Every day 06:00 IST": {"main": [[{"node": "Run pipeline", "type": "main", "index": 0}]]},
+    "Run now": {"main": [[{"node": "Run pipeline", "type": "main", "index": 0}]]},
     "Run pipeline": {"main": [[{"node": "Healthy?", "type": "main", "index": 0}]]},
     "Healthy?": {"main": [
       [{"node": "Email report", "type": "main", "index": 0}],
