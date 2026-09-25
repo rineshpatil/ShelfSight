@@ -1,0 +1,33 @@
+{
+  "name": "ShelfSight · Error alert",
+  "nodes": [
+    {
+      "id": "b1e1c0de-0003-4000-8000-000000000001",
+      "name": "When a ShelfSight workflow fails",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "parameters": {}
+    },
+    {
+      "id": "b1e1c0de-0003-4000-8000-000000000002",
+      "name": "Email failure",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [240, 0],
+      "parameters": {
+        "fromEmail": "__SHELFSIGHT_REPORT_TO__",
+        "toEmail": "__SHELFSIGHT_REPORT_TO__",
+        "subject": "=✖ ShelfSight workflow failed · {{ $json.workflow.name }}",
+        "emailFormat": "text",
+        "text": "=The workflow \"{{ $json.workflow.name }}\" crashed.\n\nNode: {{ $json.execution.lastNodeExecuted }}\nError: {{ $json.execution.error.message }}\n\nOpen the execution: {{ $json.execution.url }}\n\nMost likely cause: the bridge isn't running. Start it with scripts/start_bridge.ps1.",
+        "options": {}
+      },
+      "credentials": {"smtp": {"id": "__SMTP_CREDENTIAL_ID__", "name": "ShelfSight Gmail SMTP"}}
+    }
+  ],
+  "connections": {
+    "When a ShelfSight workflow fails": {"main": [[{"node": "Email failure", "type": "main", "index": 0}]]}
+  },
+  "settings": {"executionOrder": "v1", "timezone": "Asia/Kolkata"}
+}

@@ -1,0 +1,23 @@
+# Local n8n for ShelfSight orchestration (cron, retries, alerts, digests).
+# Start: docker compose -f infra/n8n/docker-compose.yml up -d   →   http://localhost:5679
+# Host port 5679, not n8n's default 5678, so it can run beside another local n8n.
+name: shelfsight-n8n
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest   # ponytail: floating tag; pin a version once workflows exist
+    ports:
+      - "127.0.0.1:5679:5678"               # loopback only: n8n holds credentials, never expose it publicly
+    environment:
+      - GENERIC_TIMEZONE=Asia/Kolkata       # schedule triggers run in IST
+      - TZ=Asia/Kolkata
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_PERSONALIZATION_ENABLED=false
+      - N8N_EDITOR_BASE_URL=http://localhost:5679
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # reach SearxNG and the host from workflows
+    volumes:
+      - n8n_data:/home/node/.n8n            # workflows, credentials and the encryption key survive restarts
+    restart: unless-stopped
+
+volumes:
+  n8n_data:

@@ -1,0 +1,102 @@
+{
+  "name": "ShelfSight · Daily run",
+  "nodes": [
+    {
+      "id": "b1e1c0de-0001-4000-8000-000000000001",
+      "name": "Every day 06:00 IST",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0],
+      "parameters": {"rule": {"interval": [{"field": "cronExpression", "expression": "0 6 * * *"}]}}
+    },
+    {
+      "id": "b1e1c0de-0001-4000-8000-000000000006",
+      "name": "Run now",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 200],
+      "parameters": {}
+    },
+    {
+      "id": "b1e1c0de-0001-4000-8000-000000000002",
+      "name": "Run pipeline",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [240, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "parameters": {
+        "method": "POST",
+        "url": "__BRIDGE_URL__/run",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"workspace\": \"__SHELFSIGHT_WORKSPACE__\"}",
+        "options": {"timeout": 1800000, "response": {"response": {"neverError": true}}}
+      },
+      "credentials": {"httpHeaderAuth": {"id": "__BRIDGE_CREDENTIAL_ID__", "name": "ShelfSight bridge token"}}
+    },
+    {
+      "id": "b1e1c0de-0001-4000-8000-000000000003",
+      "name": "Healthy?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [480, 0],
+      "parameters": {
+        "conditions": {
+          "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 2},
+          "conditions": [
+            {"id": "ok-is-true", "leftValue": "={{ $json.ok }}", "rightValue": true,
+             "operator": {"type": "boolean", "operation": "true", "singleValue": true}}
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b1e1c0de-0001-4000-8000-000000000004",
+      "name": "Email report",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [720, -100],
+      "parameters": {
+        "fromEmail": "__SHELFSIGHT_REPORT_TO__",
+        "toEmail": "__SHELFSIGHT_REPORT_TO__",
+        "subject": "=ShelfSight daily report · {{ $json.workspace }} · {{ $json.run_date }}",
+        "emailFormat": "text",
+        "text": "={{ $json.report }}\n\nCoverage {{ Math.round($json.run.coverage * 100) }}% · {{ $json.run.ok_calls }}/{{ $json.run.planned_calls }} calls · {{ $json.extract.extracted }} answers extracted.",
+        "options": {}
+      },
+      "credentials": {"smtp": {"id": "__SMTP_CREDENTIAL_ID__", "name": "ShelfSight Gmail SMTP"}}
+    },
+    {
+      "id": "b1e1c0de-0001-4000-8000-000000000005",
+      "name": "Email alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [720, 100],
+      "parameters": {
+        "fromEmail": "__SHELFSIGHT_REPORT_TO__",
+        "toEmail": "__SHELFSIGHT_REPORT_TO__",
+        "subject": "=⚠ ShelfSight run needs attention · {{ $json.workspace || '__SHELFSIGHT_WORKSPACE__' }}",
+        "emailFormat": "text",
+        "text": "=Problems:\n- {{ ($json.alerts || [$json.error || 'bridge returned an unexpected response']).join('\\n- ') }}\n\n{{ $json.report || '' }}",
+        "options": {}
+      },
+      "credentials": {"smtp": {"id": "__SMTP_CREDENTIAL_ID__", "name": "ShelfSight Gmail SMTP"}}
+    }
+  ],
+  "connections": {
+    "Every day 06:00 IST": {"main": [[{"node": "Run pipeline", "type": "main", "index": 0}]]},
+    "Run now": {"main": [[{"node": "Run pipeline", "type": "main", "index": 0}]]},
+    "Run pipeline": {"main": [[{"node": "Healthy?", "type": "main", "index": 0}]]},
+    "Healthy?": {"main": [
+      [{"node": "Email report", "type": "main", "index": 0}],
+      [{"node": "Email alert", "type": "main", "index": 0}]
+    ]}
+  },
+  "settings": {"executionOrder": "v1", "timezone": "Asia/Kolkata", "errorWorkflow": "__ERROR_WORKFLOW_ID__"}
+}
