@@ -10,8 +10,9 @@ class SearxProbe:
     """Runs a model's own search query through SearxNG to approximate the candidate set it chose from."""
 
     def __init__(self, base_url: str, engines: list[str], client: httpx.Client, top_n: int = 20,
-                 min_interval_s: float = 0, retry_wait=None):
+                 min_interval_s: float = 0, language: str = "en-IN", retry_wait=None):
         self.base_url, self.engines, self.top_n = base_url.rstrip("/"), engines, top_n
+        self.language = language
         self._client = client
         self._pacer = Pacer(min_interval_s)
         self._retrying = retrying(retry_wait)
@@ -23,7 +24,7 @@ class SearxProbe:
 
     def _get(self, query: str) -> dict:
         self._pacer.wait()
-        params = {"q": query, "format": "json", "engines": ",".join(self.engines)}
+        params = {"q": query, "format": "json", "engines": ",".join(self.engines), "language": self.language}
         r = self._client.get(f"{self.base_url}/search", params=params, timeout=30)
         raise_for_status(r)
         return r.json()

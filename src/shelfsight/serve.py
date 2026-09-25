@@ -58,7 +58,8 @@ def run_pipeline(workspace_id: str, limit: int | None = None, *, config: str = "
         if not engines:
             return {"ok": False, "workspace": ws.id, "run_date": day, "alerts": ["no engine is available"]}
         sx = settings.searxng
-        probe = SearxProbe(sx.url, sx.engines, client, top_n=sx.probe_top_n, min_interval_s=sx.min_interval_s)
+        probe = SearxProbe(sx.url, sx.engines, client, top_n=sx.probe_top_n, min_interval_s=sx.min_interval_s,
+                           language=sx.language)
         run = run_collect(settings=settings, workspace=ws, prompts=active_prompts(prompts)[:limit],
                           engines=engines, probe=probe, store=store, run_date=day)
         llm = build_llm(settings, client)

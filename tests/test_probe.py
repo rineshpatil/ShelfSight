@@ -21,9 +21,11 @@ def fixture():
 def test_search_sends_json_format_and_engines_and_truncates():
     route = respx.get(url__startswith="http://searx.test/search").mock(return_value=httpx.Response(200, json=fixture()))
     with httpx.Client() as c:
-        hits = SearxProbe("http://searx.test/", ["google", "bing"], c, top_n=2, retry_wait=wait_none()).search("sunscreen")
+        hits = SearxProbe("http://searx.test/", ["google", "bing"], c, top_n=2, language="en-IN",
+                          retry_wait=wait_none()).search("sunscreen")
     params = route.calls[0].request.url.params
     assert (params["q"], params["format"], params["engines"]) == ("sunscreen", "json", "google,bing")
+    assert params["language"] == "en-IN"  # otherwise a US-hosted probe scores US results
     assert hits == [
         {"url": "https://www.nykaa.com/dot-key-watermelon-sunscreen/p/1?utm_source=x", "source_engine": "google"},
         {"url": "https://www.reddit.com/r/IndianSkincareAddicts/comments/abc/", "source_engine": "brave"},

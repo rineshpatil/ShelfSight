@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import Literal
 
@@ -66,6 +67,7 @@ class ExtractorCfg(BaseModel):
 class SearxngCfg(BaseModel):
     url: str
     engines: list[str]
+    language: str = "en-IN"  # the probe must see the buyer's market, not the host's
     probe_top_n: int = 20
     max_queries_per_response: int = 3
     min_interval_s: float = 1.5
@@ -82,7 +84,11 @@ class Settings(BaseModel):
 
 
 def load_settings(path: str | Path = "config/config.yaml") -> Settings:
-    return Settings.model_validate(yaml.safe_load(Path(path).read_text(encoding="utf-8")))
+    raw = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+    url = os.environ.get("SHELFSIGHT_SEARXNG_URL")  # the deployed host runs SearxNG as a sibling container
+    if url:
+        raw.setdefault("searxng", {})["url"] = url
+    return Settings.model_validate(raw)
 
 
 def load_workspace(workspace_id: str, root: str | Path = "config/workspaces") -> Workspace:
