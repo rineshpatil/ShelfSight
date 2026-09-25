@@ -77,8 +77,11 @@ def main() -> int:
         print(f"SMTP credential: NOT FOUND ({len(smtp)} SMTP credentials; name one '{SMTP_CRED}') - email nodes left unlinked")
 
     existing = {w["name"]: w for w in api.get("/workflows").raise_for_status().json()["data"]}
+    # laptop: n8n in Docker reaches the bridge on the host; EC2: the bridge is a sibling container
+    bridge_url = env("SHELFSIGHT_BRIDGE_URL", "http://host.docker.internal:8765")
     values = {"__BRIDGE_CREDENTIAL_ID__": bridge_id, "__SHELFSIGHT_REPORT_TO__": report_to,
-              "__SHELFSIGHT_WORKSPACE__": workspace, "__ERROR_WORKFLOW_ID__": ""}
+              "__SHELFSIGHT_WORKSPACE__": workspace, "__BRIDGE_URL__": bridge_url, "__ERROR_WORKFLOW_ID__": ""}
+    print(f"bridge url: {bridge_url}")
     ids = {}
     for name in (ERROR_WORKFLOW, *SCHEDULED):  # error workflow first: the others point at its id
         wf = render(json.loads((TEMPLATES / name).read_text(encoding="utf-8")), values, smtp_id)

@@ -28,7 +28,7 @@
       "waitBetweenTries": 5000,
       "parameters": {
         "method": "GET",
-        "url": "http://host.docker.internal:8765/report",
+        "url": "__BRIDGE_URL__/report",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendQuery": true,

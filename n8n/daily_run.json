@@ -28,7 +28,7 @@
       "waitBetweenTries": 5000,
       "parameters": {
         "method": "POST",
-        "url": "http://host.docker.internal:8765/run",
+        "url": "__BRIDGE_URL__/run",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
