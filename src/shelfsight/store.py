@@ -36,7 +36,10 @@ class Store:
         if self.is_remote:
             # credential_chain = instance role on EC2, aws login locally; nothing is stored in the repo
             con.execute("INSTALL httpfs; LOAD httpfs; INSTALL aws; LOAD aws;")
-            con.execute("CREATE OR REPLACE SECRET lake (TYPE s3, PROVIDER credential_chain);")
+            # explicit chain: 'instance' is the EC2 role, 'env'/'sts' cover a laptop where
+            # `aws login` leaves nothing the plain config provider can read
+            con.execute("CREATE OR REPLACE SECRET lake (TYPE s3, PROVIDER credential_chain, "
+                        "CHAIN 'env;instance;config');")
         return con
 
     def write(self, table: str, rows: list[dict]) -> int:
