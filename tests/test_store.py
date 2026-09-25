@@ -52,6 +52,21 @@ def test_empty_table_is_queryable(tmp_path):
     assert Store(tmp_path).rows("SELECT count(*) AS n FROM funnel") == [{"n": 0}]
 
 
+def test_s3_root_builds_keys_and_never_touches_the_filesystem(tmp_path, monkeypatch):
+    s = Store("s3://shelfsight-lake/prod")
+    assert s.is_remote
+    assert s.partition("citations", "ws", date(2026, 9, 21)) == "s3://shelfsight-lake/prod/citations/workspace=ws/run_date=2026-09-21"
+    assert s.glob("citations") == "s3://shelfsight-lake/prod/citations/**/*.parquet"
+    monkeypatch.chdir(tmp_path)
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_local_root_keeps_filesystem_paths(tmp_path):
+    s = Store(tmp_path / "lake")
+    assert not s.is_remote
+    assert s.partition("citations", "ws", date(2026, 9, 21)).endswith("lake/citations/workspace=ws/run_date=2026-09-21")
+
+
 def test_unknown_column_rejected(tmp_path):
     with pytest.raises(ValueError, match="unknown columns"):
         Store(tmp_path).write("citations", [row(bogus=1)])

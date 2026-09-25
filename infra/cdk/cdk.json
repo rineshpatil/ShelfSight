@@ -1,0 +1,9 @@
+{
+  "app": "uv run --project ../.. --group infra python app.py",
+  "watch": {"exclude": ["**/.venv/**", "**/__pycache__/**"]},
+  "context": {
+    "@aws-cdk/core:newStyleStackSynthesis": true,
+    "@aws-cdk/aws-ec2:restrictDefaultSecurityGroup": true,
+    "@aws-cdk/aws-iam:minimizePolicies": true
+  }
+}

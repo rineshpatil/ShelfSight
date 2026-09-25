@@ -5,3 +5,5 @@ data/lake/
 .env
 # private working notes, never published
 AI Visibility Tracker — Project Blueprint.md
+infra/cdk/cdk.context.json
+infra/cdk/cdk.out/

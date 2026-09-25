@@ -1,0 +1,37 @@
+# Runs on the EC2 host. Written to /opt/shelfsight/docker-compose.yml by user-data, which also
+# writes .env (image uri, lake, and the secrets pulled from SSM). No host ports are published:
+# everything talks over the internal compose network, and you reach n8n through SSM port forwarding.
+services:
+  bridge:
+    image: ${SHELFSIGHT_IMAGE}
+    environment:
+      - SHELFSIGHT_LAKE=${SHELFSIGHT_LAKE}
+      - SHELFSIGHT_BRIDGE_TOKEN=${SHELFSIGHT_BRIDGE_TOKEN}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+    restart: unless-stopped
+
+  searxng:
+    image: searxng/searxng:latest
+    environment:
+      - SEARXNG_SECRET=${SEARXNG_SECRET}
+    volumes:
+      - ./searxng-settings.yml:/etc/searxng/settings.yml:ro
+    restart: unless-stopped
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    ports:
+      - "127.0.0.1:5678:5678"   # loopback on the host: only SSM port forwarding can reach it
+    environment:
+      - GENERIC_TIMEZONE=Asia/Kolkata
+      - TZ=Asia/Kolkata
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_PERSONALIZATION_ENABLED=false
+      - N8N_EDITOR_BASE_URL=http://localhost:5679
+    volumes:
+      - n8n_data:/home/node/.n8n
+    restart: unless-stopped
+
+volumes:
+  n8n_data:
