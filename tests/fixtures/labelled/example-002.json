@@ -1,0 +1,3 @@
+{"workspace": "dotandkey",
+ "response_text": "Agar aapki skin oily hai toh The Derma Co 1% Hyaluronic Sunscreen Aqua Gel accha option hai. Lakme Sun Expert bhi budget mein theek hai, lekin white cast chhod sakta hai.",
+ "expected": [{"brand_id": "dermaco", "rank": 1}, {"brand_id": "lakme", "rank": 2}]}

@@ -1,0 +1,13 @@
+{
+  "candidates": [{
+    "content": {"role": "model", "parts": [{"text": "For oily skin in India, try:\n1. **Minimalist SPF 50** - lightweight, no white cast.\n2. **Re'equil Oil Control Sunscreen** - matte finish.\n3. **Dot & Key Watermelon Cooling Sunscreen** - gel texture, though some find it sticky.\nNeutrogena Ultra Sheer is also widely available."}]},
+    "groundingMetadata": {
+      "webSearchQueries": ["best sunscreen for oily skin india under 500"],
+      "groundingChunks": [
+        {"web": {"uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AAA", "title": "nykaa.com"}},
+        {"web": {"uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/BBB", "title": "reddit.com"}}
+      ]
+    }
+  }],
+  "usageMetadata": {"promptTokenCount": 42, "candidatesTokenCount": 180}
+}

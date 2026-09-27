@@ -1,0 +1,13 @@
+.git
+.github
+.venv
+.claude
+.env
+data/lake
+docs
+infra
+n8n
+scripts
+tests
+**/__pycache__
+**/.pytest_cache

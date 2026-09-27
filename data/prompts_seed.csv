@@ -1,0 +1,11 @@
+prompt_id,prompt_text,intent,persona,market,priority,version,active,owner,last_reviewed
+SUN-DISC-001,"best sunscreen for oily skin in india under ₹500",discovery,"oily skin, 25, budget",IN,high,1,TRUE,Rinesh,2026-09-21
+SUN-DISC-002,"sunscreen for oily skin under 500 rs",discovery,,IN,high,1,TRUE,Rinesh,2026-09-21
+SUN-PROB-001,"sunscreen that doesn't leave a white cast on brown skin",problem_led,,IN,high,1,TRUE,Rinesh,2026-09-21
+SUN-PROB-002,"konsa sunscreen lagau jo pimples na kare",problem_led,"acne-prone, 22",IN,medium,1,TRUE,Rinesh,2026-09-21
+SUN-COMP-001,"Dot & Key vs Minimalist sunscreen, which is better?",comparison,,IN,high,1,TRUE,Rinesh,2026-09-21
+SUN-COMP-002,"re'equil vs the derma co sunscreen for oily skin",comparison,,IN,medium,1,TRUE,Rinesh,2026-09-21
+SUN-ING-001,"Is a chemical or mineral sunscreen better for acne-prone skin?",ingredient_claim,,IN,medium,1,TRUE,Rinesh,2026-09-21
+SUN-ING-002,"is spf 50 really better than spf 30 for indian summers",ingredient_claim,,IN,low,1,TRUE,Rinesh,2026-09-21
+SUN-BRAND-001,"Is Dot & Key sunscreen good? What are its downsides?",brand_direct,,IN,high,1,TRUE,Rinesh,2026-09-21
+SUN-BRAND-002,"dot and key watermelon sunscreen review",brand_direct,,IN,medium,1,TRUE,Rinesh,2026-09-21

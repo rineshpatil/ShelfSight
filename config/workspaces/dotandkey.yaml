@@ -1,0 +1,44 @@
+# Domains and marketplace URL patterns are best-effort seeds. Confirm each one before the first real run.
+id: dotandkey
+category: sunscreen
+market: IN
+brands:
+  - id: dotandkey
+    name: Dot & Key
+    is_client: true
+    aliases: ["dot & key", "dot and key", "dot n key", "dotandkey"]
+    domains: [dotandkey.com]
+    url_patterns: ["nykaa.com/dot-key", "amazon.in/dot-key"]
+  - id: minimalist
+    name: Minimalist
+    ambiguous: true              # also an ordinary English word
+    aliases: ["minimalist", "be minimalist"]
+    domains: [beminimalist.co]
+  - id: dermaco
+    name: The Derma Co
+    aliases: ["the derma co", "derma co", "dermaco"]
+    domains: [thedermaco.com]
+  - id: reequil
+    name: Re'equil
+    aliases: ["re'equil", "reequil", "re equil"]
+    domains: [reequil.com]
+  - id: lashield
+    name: La Shield
+    aliases: ["la shield", "lashield"]
+  - id: neutrogena
+    name: Neutrogena
+    aliases: ["neutrogena"]
+    domains: [neutrogena.in, neutrogena.com]
+  - id: lakme
+    name: Lakme
+    aliases: ["lakme", "lakmé"]
+    domains: [lakmeindia.com]
+  - id: aqualogica
+    name: Aqualogica
+    aliases: ["aqualogica"]
+    domains: [aqualogica.in]
+  - id: deconstruct
+    name: Deconstruct
+    ambiguous: true
+    aliases: ["deconstruct"]
+    domains: [thedeconstruct.in]

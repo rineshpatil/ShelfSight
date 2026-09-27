@@ -1,0 +1,4 @@
+{"workspace": "dotandkey",
+ "response_text": "For oily skin in India, try:\n1. **Minimalist SPF 50** - lightweight, no white cast.\n2. **Re'equil Oil Control Sunscreen** - matte finish.\n3. **Dot & Key Watermelon Cooling Sunscreen** - gel texture, though some find it sticky.\nNeutrogena Ultra Sheer is also widely available.",
+ "expected": [{"brand_id": "minimalist", "rank": 1}, {"brand_id": "reequil", "rank": 2},
+              {"brand_id": "dotandkey", "rank": 3}, {"brand_id": "neutrogena", "rank": null}]}
