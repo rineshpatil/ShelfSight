@@ -1,0 +1,30 @@
+graph LR
+  OP["Operator laptop<br/>SSM Session Manager<br/>no inbound ports open"]
+
+  subgraph HOST["EC2 t4g.small - VPC public subnet - SG 0 inbound - Elastic IP"]
+    N8["n8n<br/>cron 06:00 IST"]
+    BR["ShelfSight bridge<br/>:8765 token protected"]
+    SX["SearxNG<br/>retrieval probe"]
+  end
+
+  subgraph MANAGED["AWS managed - via IAM instance role"]
+    BED["Bedrock<br/>Nova 2 Lite + grounding"]
+    S3[("S3 Parquet lake<br/>retained")]
+    SSM["SSM Parameter Store<br/>SecureStrings"]
+    ECR[("ECR<br/>pipeline image")]
+  end
+
+  subgraph EXT["Outside AWS"]
+    GEM["Gemini API<br/>free tier, grounded"]
+    WEB["Public web<br/>Indian retailers, Reddit"]
+  end
+
+  OP -->|"port forward 5678"| N8
+  N8 -->|"POST /run daily"| BR
+  BR -->|"1 ask each prompt"| BED
+  BR -->|"1 ask each prompt"| GEM
+  BR -->|"2 replay model queries"| SX
+  SX -->|"3 candidate set"| WEB
+  BR -->|"4 append Parquet"| S3
+  SSM -.->|"secrets at boot"| BR
+  ECR -.->|"image pull"| BR
