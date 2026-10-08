@@ -99,6 +99,8 @@ const panel = (title, hint, inner) =>
 function verdict(d) {
   const seen = d.searches.length, best = Math.min(...d.searches.map((s) => s.best_position));
   const cited = d.cited.reduce((a, c) => a + c.times, 0);
+  // a citation outranks the probe: the replay only approximates the model's index, so a cited page can be unseen
+  if (cited && !seen) return [`Cited ${cited} time${cited > 1 ? "s" : ""}, though the search replay never surfaced it.`, "good"];
   if (!seen) return ["This page never reached the candidate set for any AI search.", "bad"];
   if (!cited && best > d.eligible_top_n)
     return [`Found by ${seen} AI search${seen > 1 ? "es" : ""}, but never in the top ${d.eligible_top_n}.`, "warn"];
