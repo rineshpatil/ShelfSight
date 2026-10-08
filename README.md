@@ -202,7 +202,22 @@ uv run shelfsight funnel  --workspace dotandkey
 uv run shelfsight report  --workspace dotandkey
 ```
 
-`uv run pytest` runs 105 offline tests. Live checks live in `scripts/` and never run in CI.
+`uv run pytest` runs 116 offline tests. Live checks live in `scripts/` and never run in CI.
+
+### Page lookup
+
+Paste a page URL and see everything stored about it: the AI searches that found it and at what position,
+where it was cited, the brand's diagnosis per answer, the searches where the brand had no page, who wins
+instead, which sources they cite, and a live check of the page against the claims that win.
+
+```bash
+export SHELFSIGHT_BRIDGE_TOKEN=...      # any secret; the page asks for it once
+uv run shelfsight serve                 # then open http://127.0.0.1:8765/
+uv run shelfsight --lake s3://<bucket>/lake serve   # same, over every run on AWS (needs aws login)
+```
+
+It reads stored runs only, so it is instant and free. A URL works when a brand in `config/workspaces/` owns
+it (its domain or a marketplace `url_pattern`); other URLs say "not tracked yet".
 
 ### On AWS
 

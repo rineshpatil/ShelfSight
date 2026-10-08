@@ -85,13 +85,18 @@ def main(argv: list[str] | None = None) -> int:
         if not token:
             print("error: set SHELFSIGHT_BRIDGE_TOKEN; the bridge never runs without a token", file=sys.stderr)
             return 2
+        from shelfsight.page import lookup
         from shelfsight.serve import make_server, run_pipeline
 
         def pipeline(workspace, limit):
             return run_pipeline(workspace, limit, config=args.config, lake=args.lake)
 
-        server = make_server(token, pipeline=pipeline, host=args.host, port=args.port)
+        def page(url):
+            return lookup(url, Store(args.lake), load_settings(args.config))
+
+        server = make_server(token, pipeline=pipeline, page=page, host=args.host, port=args.port)
         print(f"shelfsight bridge on http://{args.host}:{args.port} (n8n: http://host.docker.internal:{args.port})")
+        print(f"page lookup UI: http://127.0.0.1:{args.port}/")
         try:
             server.serve_forever()
         except KeyboardInterrupt:
