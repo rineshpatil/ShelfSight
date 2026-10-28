@@ -17,7 +17,7 @@ TABLES: dict[str, str] = {
         engine VARCHAR, model VARCHAR, mode VARCHAR, sample_n INTEGER,
         status VARCHAR, error VARCHAR,
         response_text VARCHAR, web_search_queries VARCHAR[], raw_json VARCHAR,
-        system_prompt VARCHAR, temperature DOUBLE,
+        system_prompt VARCHAR, temperature DOUBLE, prompt_text VARCHAR, collection_settings VARCHAR, probe_status VARCHAR,
         input_tokens INTEGER, output_tokens INTEGER, latency_ms INTEGER, created_at TIMESTAMP
     """,
     "citations": """
@@ -35,13 +35,15 @@ TABLES: dict[str, str] = {
     "mentions": """
         response_id VARCHAR, workspace VARCHAR, run_date DATE, engine VARCHAR, mode VARCHAR, prompt_id VARCHAR,
         brand_id VARCHAR, brand_raw VARCHAR, rank INTEGER, is_recommended BOOLEAN,
-        sentiment VARCHAR, claims VARCHAR[], source VARCHAR, extractor_version VARCHAR
+        sentiment VARCHAR, claims VARCHAR[], source VARCHAR, extractor_version VARCHAR,
+        extraction_provenance VARCHAR
     """,
     "funnel": """
         workspace VARCHAR, run_date DATE, engine VARCHAR, mode VARCHAR, prompt_id VARCHAR, prompt_version INTEGER,
         intent VARCHAR, priority VARCHAR, brand_id VARCHAR, is_client BOOLEAN, response_id VARCHAR,
         is_eligible BOOLEAN, is_cited BOOLEAN, is_named BOOLEAN, is_recommended BOOLEAN, rank INTEGER,
-        eligible_n INTEGER, diagnosis VARCHAR, extractor_version VARCHAR, joiner_version VARCHAR
+        eligible_n INTEGER, diagnosis VARCHAR, extractor_version VARCHAR, joiner_version VARCHAR,
+        observations VARCHAR, proxy_measurements VARCHAR, causal_hypotheses VARCHAR, confidence_status VARCHAR
     """,
 }
 

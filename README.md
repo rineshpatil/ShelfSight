@@ -1,134 +1,75 @@
 # ShelfSight
 
-**Why AI assistants do — or don't — recommend your brand, measured at the retrieval layer.**
+ShelfSight helps agencies investigate AI recommendations for Indian beauty and skincare brands.
+It collects API answers, records reported citations and independent search proxies, and proposes
+hypotheses to investigate. It does not establish why a model included or excluded a brand.
 
-When a shopper asks ChatGPT, Gemini or an AI-powered search for "best sunscreen for oily skin in India
-under ₹500", the assistant names three or four brands. That list is the new shelf. ShelfSight tells a
-brand team whether they are on it, and when they are not, **which specific thing to fix**.
+## Evidence contract
 
-Existing AI-visibility tools report a number: "you appear in 23% of answers." ShelfSight reports a
-cause: *"for 7 of your 10 category questions, no page of yours is even in the candidate set the model
-searched — that is a content gap, not an authority problem."*
+- Direct observations: returned answer text, reported search queries and citation URLs.
+- Extractor interpretations: named brands, recommendations and ranks, with versioned replay provenance.
+- Proxy measurements: SearxNG results for reported queries. `is_eligible`, `eligible_n` and legacy diagnosis
+  identifiers are compatibility names, not access to the answer engine's candidate set.
+- Causal hypotheses: separate from observations; no automatic content-gap, authority or training-data conclusion.
+- Missing citations do not establish reliance on training data. No calibrated confidence is available.
+- Visibility, citations, referral traffic and purchases are distinct measures. Business impact is unmeasured.
 
-Design spec: [`docs/superpowers/specs/2026-09-21-shelfsight-design.md`](docs/superpowers/specs/2026-09-21-shelfsight-design.md)
+See [the verified assessment](docs/reliability-assessment.md) for scope, gaps and remaining limitations.
+Historical design documents and sample briefs are not validation evidence.
 
----
+## Reproducible local intervention
 
-## Why FMCG brands and their agencies should care
+From this editable worktree, with the existing Python environment:
 
-FMCG and D2C brands have spent thirty years optimising two shelves: the physical aisle and the retailer
-search bar. A third shelf now sits in front of both, and it presents **one answer instead of a range**.
-On a Nykaa results page a shopper sees forty sunscreens. Ask an assistant and you get three, with
-reasons. Being fourth is the same as being invisible.
-
-### What changes for a brand team
-
-| Old world | AI-assistant world |
-|---|---|
-| Rank #7 on a category page and still get clicks | Named 4th in an answer and get nothing |
-| Win the shelf by paying for placement | The assistant cites Reddit threads and review blogs you don't control |
-| Category entry points measured by search volume | Buyers ask full questions: "no white cast on brown skin", "safe for acne-prone" |
-| Brand awareness is the top of the funnel | The model's training memory *is* awareness, and it decays silently |
-
-### What a team actually does with the output
-
-Each answer gets one diagnosis, and each diagnosis has a different owner. This is the part that makes
-it usable rather than interesting:
-
-| Diagnosis | What it means | Who fixes it | Typical FMCG fix |
-|---|---|---|---|
-| `not_eligible` | No page of yours competes for the question the model actually searched | Content / SEO | Write the page for that buyer question, not for a keyword |
-| `eligible_not_cited` | Your page was in the running and lost | Content / PR | Make the claim extractable: comparison tables, specifics, schema |
-| `cited_not_named` | Your page fed an answer that recommends a rival | Content | Your page doesn't make your own case |
-| `named_not_recommended` | The model knows you but won't endorse you | Product marketing | The claim the buyer asked about is missing from your copy |
-| `recommended_not_top3` | Recommended, but below the fold of the answer | Brand / PR | Strengthen third-party evidence |
-| `not_named` | Absent from training memory, with no live retrieval to explain it | Brand | Long-term: reviews, press, category authority |
-| `winning` | Named in the top three | — | Defend it; check weekly |
-
-### Three questions it answers that a dashboard of percentages cannot
-
-1. **Is this a content problem or an authority problem?** If you are in the candidate set and not cited,
-   writing more pages won't help. If you are not in the candidate set at all, authority work won't help.
-2. **Which pages do assistants trust in our category?** Real output from a live run: `reddit.com`,
-   `youtube.com`, niche dermatology review sites, then `nykaa.com`. That is a PR and marketplace brief,
-   not an SEO brief.
-3. **Who is winning that we don't even track?** A live run surfaced Dr. Sheth's, Lotus Herbals, Plum,
-   Kama Ayurveda and Foxtale appearing in answers while absent from the tracked competitor set.
-
-### Where it fits commercially
-
-- **Agencies** run it per client workspace and bill the monthly action list as a retainer deliverable.
-- **Brand teams** use it as the AEO equivalent of a share-of-search report, with a fix attached.
-- **Cost** is roughly **$15/month of infrastructure** plus a few dollars of model usage, against a manual
-  alternative of an analyst checking 50 questions across several assistants by hand.
-
----
-
-## How it works
-
-Being *cited* and being *named* are two different paths, and the interesting findings live where they
-disagree. A brand can be named without being cited (training memory — fragile), or cited without being
-named (your content feeding a rival's win).
-
-```mermaid
-flowchart LR
-  subgraph R["Retrieval path — your pages"]
-    I[Indexed] --> E[Eligible<br/>in the candidate set] --> C[Cited]
-  end
-  subgraph A["Answer path — your brand"]
-    N[Named] --> Rec[Recommended] --> T[Top-3]
-  end
-  C -.->|should lead to| N
-  E -.->|"gap here = content"| N
+```powershell
+.venv\Scripts\python.exe -m pytest -q
+.venv\Scripts\python.exe scripts/eval_replay.py --output data/extractor-replay.json
+.venv\Scripts\python.exe scripts/intervention_example.py --output data/intervention-demo
 ```
 
-The measurement nobody else makes is **Eligible**. Gemini and Nova both return the search queries they
-generated. ShelfSight takes those exact queries, runs them through its own SearxNG instance, and checks
-whether any of your pages were in the results the model chose from.
+Use a fresh output directory for every example run. All example answers, product facts, approvals and
+publication records are synthetic. No network calls, credentials or paid services are required.
+The output includes an append-only lake, proposal.json, a SQLite event ledger, assessment.json and README.md.
+The local publication is an immutable content artifact in the ledger, never a brand-site deployment.
 
-```mermaid
-flowchart TB
-  P[Prompt library<br/>50 buyer questions, versioned] --> C[collect]
-  C --> G["Gemini grounded + no-web<br/>Nova on Bedrock grounded + no-web"]
-  G -->|"the model's own<br/>search queries"| S[SearxNG probe]
-  G -->|"cited pages"| CIT[(citations)]
-  S --> CAND[(candidates)]
-  C --> RAW[(raw_responses<br/>append-only)]
-  RAW --> X[extract<br/>dictionary + LLM]
-  X --> M[(mentions)]
-  CAND --> F[funnel joiner]
-  CIT --> F
-  M --> F
-  F --> FUN[(funnel<br/>one diagnosis per answer x brand)]
-  FUN --> REP[report<br/>ranked action list]
+For a real locally reviewed proposal, supply a JSON document matching `Proposal` in
+`src/shelfsight/interventions.py`. Direct observations must match the local lake; brand facts require
+snapshots, exact quotations, capture times and named verification attestations for the exact page.
+The constrained publisher emits only supported quotations. Unverified ingredients and suitability stay unknown.
+
+```powershell
+python -m shelfsight.interventions --ledger data/interventions.sqlite propose proposal.json --actor reviewer --lake data/lake
+python -m shelfsight.interventions --ledger data/interventions.sqlite approve CHANGE_ID --actor approver
+python -m shelfsight.interventions --ledger data/interventions.sqlite publish-local CHANGE_ID --actor publisher
+python -m shelfsight.interventions --ledger data/interventions.sqlite show CHANGE_ID
+python -m shelfsight.outcomes --lake data/lake --ledger data/interventions.sqlite --id CHANGE_ID --output assessment.json
 ```
 
-Stages are separate on purpose. Raw answers are never modified, and derived rows carry an extractor or
-joiner version, so extraction and diagnosis can be re-run over stored answers **without paying to
-collect again**.
+Plans specify baseline/post dates, target/comparison questions and pages, and model, prompt and collection
+versions before post observations. The first implementation expects exactly one observation per question/day.
+Repeated observations occur across days. Duplicate cells, failed/missing runs and changed/unknown settings are
+reported rather than treated as zeros. Differences require complete cells and at least seven days per window
+by default. Difference-in-differences is descriptive; the causal verdict remains inconclusive.
 
-### A day in the life
+Approver identity is a local attestation, not authentication. The ledger prevents duplicate or out-of-order
+transitions through the interface; a user with database access can edit the file. It is not a tamper-proof audit service.
 
-```mermaid
-sequenceDiagram
-  participant N as n8n (06:00 IST)
-  participant B as bridge
-  participant M as Gemini / Nova
-  participant S as SearxNG
-  participant L as S3 lake
-  N->>B: POST /run (token)
-  B->>M: ask each prompt, web + no-web
-  M-->>B: answer + own queries + citations
-  B->>S: run those queries
-  S-->>B: candidate set
-  B->>L: append raw_responses, citations, candidates
-  B->>M: extract brands (JSON schema)
-  B->>L: append mentions, funnel
-  B-->>N: summary + alerts + report
-  N->>N: email report, or alert if degraded
-```
+## Extractor validation and version migration
 
----
+`eval_replay.py` checks synthetic outputs through reconciliation and saved provider citation fixtures through
+the parser. Its scores are regression checks, not live model accuracy. `eval_extractor.py --predictions ...
+--output ...` scores reviewed labels against saved predictions and retains errors and provenance. Live evaluation
+requires the explicit `--live` switch, uses the configured extractor, and can incur charges. It was not run here.
+
+New defaults are `ext-3-evidence` and `join-2-evidence`. Old rows and files are preserved. Reports filter by
+current versions, so historical results require explicit re-extraction/re-derivation or use of their old config;
+changing a version string does not validate or migrate old results. New extraction rows retain the prompt,
+schema, model, output, answer hash and brand configuration. Older rows lack this provenance.
+
+## Existing operational code (not deployment verification)
+
+The following describes checked-in infrastructure and collection interfaces. Deployment and account state
+have not been checked. These commands call external services; they are not needed for the local example.
 
 ## Architecture on AWS
 
@@ -177,8 +118,8 @@ flowchart TB
 |---|---|---|
 | `runs` | daily run: status, coverage, quota, cost signals | collect |
 | `raw_responses` | prompt × engine × mode (append-only, never edited) | collect |
-| `candidates` | URL in the candidate set for one of the model's own queries | probe |
-| `citations` | URL the model actually cited | collect |
+| `candidates` | URL returned by independent search for a reported query | probe |
+| `citations` | Provider-reported citation URL; unresolved links remain unresolved | collect |
 | `mentions` | brand named in an answer, with rank, sentiment, claims | extract |
 | `funnel` | answer × tracked brand, with its diagnosis | funnel joiner |
 
@@ -202,7 +143,22 @@ uv run shelfsight funnel  --workspace dotandkey
 uv run shelfsight report  --workspace dotandkey
 ```
 
-`uv run pytest` runs 105 offline tests. Live checks live in `scripts/` and never run in CI.
+`uv run pytest` runs the offline test suite. Live checks live in `scripts/` and never run in CI.
+
+### Page lookup
+
+Paste a page URL and see everything stored about it: the independent searches that found it and at what position,
+where it was cited, the brand's diagnosis per answer, independent searches without a sampled brand hit, who wins
+instead, which sources they cite, and a live check of the page against the claims that win.
+
+```bash
+export SHELFSIGHT_BRIDGE_TOKEN=...      # any secret; the page asks for it once
+uv run shelfsight serve                 # then open http://127.0.0.1:8765/
+uv run shelfsight --lake s3://<bucket>/lake serve   # same, over every run on AWS (needs aws login)
+```
+
+It reads stored runs and fetches the page for an exact-phrase check; that check does not verify product claims. A URL works when a brand in `config/workspaces/` owns
+it (its domain or a marketplace `url_pattern`); other URLs say "not tracked yet".
 
 ### On AWS
 
@@ -236,28 +192,3 @@ uv run --env-file .env python scripts/n8n_deploy.py
 Adding a client is a new workspace YAML. Adding a category is a new prompt set. Neither needs code.
 
 ---
-
-## Honest limits
-
-- **API answers are a proxy** for the consumer apps, which add memory and personalisation. Track trends,
-  not absolute numbers.
-- **The probe approximates** each engine's retrieval; SearxNG is not the same index.
-- **Model updates move the numbers.** Model ids are pinned and recorded per row, and the smoke scripts
-  check that grounding fields still exist before a real run.
-- **Nova's search queries come from an undocumented field.** `scripts/smoke_nova.py` exists because of it.
-- **Gemini's free tier allows ~19 requests/day**, so it covers the top 9 prompts; Nova covers all of them.
-- **Extractor accuracy is not yet measured.** The target is ≥95% brand recall on 40 hand-labelled answers.
-- **The seed library has 10 prompts**, not the planned 50.
-
-## Roadmap
-
-| Plan | Delivers | State |
-|---|---|---|
-| 1. Core funnel engine | collect → probe → extract → funnel → report | Built, deployed, tested |
-| 2. Fix verification | Did the page we shipped move the funnel? Difference-in-differences against a control set | Designed, not built |
-| 3. AWS + n8n | CDK stack, scheduled runs, email digests | Built; n8n on the instance still needs its owner account |
-| 4. Dashboard | Static site over the lake with per-workspace auth | Designed, not built |
-
-Verification (Plan 2) is what turns this from a diagnosis into a loop: record what the agency shipped,
-then measure whether targeted prompts moved relative to an untouched control set, and how many days it
-took to go from published to cited.

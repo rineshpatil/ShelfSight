@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ShelfSight Page Lookup</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --panel: #ffffff; --ink: #1c1c1a; --muted: #6b6b66; --line: #e4e3df;
+    --accent: #2f5bd3; --good: #1f7a4d; --bad: #b3261e; --warn: #9a6400; --chip: #efeee9; --on-accent: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141413; --panel: #1d1d1b; --ink: #ecebe6; --muted: #9c9b95; --line: #2f2e2b;
+      --accent: #8aa8ff; --good: #5fc68f; --bad: #ff8a80; --warn: #e0b052; --chip: #2a2927; --on-accent: #10131c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 1040px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 16px; margin: 0 0 10px; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  form { display: flex; gap: 8px; flex-wrap: wrap; }
+  input { font: inherit; color: inherit; background: var(--panel); border: 1px solid var(--line);
+          border-radius: 8px; padding: 10px 12px; min-width: 0; }
+  input[name=url] { flex: 1 1 420px; }
+  button { font: inherit; border: 0; border-radius: 8px; padding: 10px 18px; cursor: pointer;
+           background: var(--accent); color: var(--on-accent); font-weight: 600; }
+  button:disabled { opacity: .6; cursor: progress; }
+  details { margin-top: 10px; color: var(--muted); font-size: 13px; }
+  details input { margin-top: 6px; width: 320px; max-width: 100%; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-top: 16px; }
+  .verdict { font-size: 17px; font-weight: 600; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 4px; word-break: break-all; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 16px; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+  .tile b { display: block; font-size: 26px; font-variant-numeric: tabular-nums; }
+  .tile span { color: var(--muted); font-size: 13px; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .grid2 .panel { margin-top: 16px; }
+  .scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+  td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .chip { display: inline-block; background: var(--chip); border-radius: 999px; padding: 1px 9px;
+          font-size: 12px; margin: 2px 4px 2px 0; }
+  .good { color: var(--good); } .bad { color: var(--bad); } .warn { color: var(--warn); }
+  .muted { color: var(--muted); }
+  .hint { color: var(--muted); font-size: 13px; margin: -4px 0 10px; }
+  .err { border-color: var(--bad); color: var(--bad); }
+  .diag { font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>ShelfSight Page Lookup</h1>
+  <p class="sub">Paste a product or content page. See how AI assistants find it, cite it, and who wins instead.</p>
+
+  <form id="f">
+    <input name="url" type="url" inputmode="url" required placeholder="https://www.dotandkey.com/products/…"
+           aria-label="Page URL">
+    <button id="go" type="submit">Analyze</button>
+  </form>
+  <details id="tokenBox">
+    <summary>Access token</summary>
+    <input id="token" type="password" autocomplete="off" placeholder="SHELFSIGHT_BRIDGE_TOKEN"
+           aria-label="Access token">
+  </details>
+
+  <div id="out" aria-live="polite"></div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) =>
+  ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const store = {
+  get(k) { try { return localStorage.getItem(k) || ""; } catch { return ""; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+};
+
+$("token").value = store.get("shelfsight-token");
+if (!$("token").value) $("tokenBox").open = true;
+
+function table(rows, cols, empty) {
+  if (!rows.length) return `<p class="muted">${esc(empty)}</p>`;
+  const head = cols.map((c) => `<th${c.n ? ' style="text-align:right"' : ""}>${esc(c.h)}</th>`).join("");
+  const body = rows.map((r) => "<tr>" + cols.map((c) =>
+    `<td${c.n ? ' class="n"' : ""}>${c.f ? c.f(r) : esc(r[c.k])}</td>`).join("") + "</tr>").join("");
+  return `<div class="scroll"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+const chips = (xs) => (xs || []).map((x) => `<span class="chip">${esc(x)}</span>`).join("");
+const panel = (title, hint, inner) =>
+  `<section class="panel"><h2>${esc(title)}</h2>${hint ? `<p class="hint">${esc(hint)}</p>` : ""}${inner}</section>`;
+
+function verdict(d) {
+  const seen = d.searches.length, best = Math.min(...d.searches.map((s) => s.best_position));
+  const cited = d.cited.reduce((a, c) => a + c.times, 0);
+  // a citation outranks the probe: the replay only approximates the model's index, so a cited page can be unseen
+  if (cited && !seen) return [`Cited ${cited} time${cited > 1 ? "s" : ""}, though the search replay never surfaced it.`, "good"];
+  if (!seen) return ["This page was not found in the sampled independent searches; engine retrieval is unknown.", "bad"];
+  if (!cited && best > d.eligible_top_n)
+    return [`Found in ${seen} independent search${seen > 1 ? "es" : ""}, but never in the top ${d.eligible_top_n}.`, "warn"];
+  if (!cited) return [`In results for ${seen} independent search${seen > 1 ? "es" : ""}, but never cited.`, "warn"];
+  return [`Cited ${cited} time${cited > 1 ? "s" : ""}, and found by ${seen} AI search${seen > 1 ? "es" : ""}.`, "good"];
+}
+
+function render(d) {
+  if (!d.tracked) {
+    return `<section class="panel err"><div class="verdict">Not tracked yet</div>
+      <p>No tracked brand owns <b>${esc(d.url)}</b>. Add the brand (with its domain) to a workspace in
+      <code>config/workspaces/</code> and run the pipeline, then look it up again.</p></section>`;
+  }
+  const [v, tone] = verdict(d);
+  const cited = d.cited.reduce((a, c) => a + c.times, 0);
+  const total = d.diagnoses.reduce((a, r) => a + r.answers, 0);
+  const winning = (d.diagnoses.find((r) => r.diagnosis === "winning") || {}).answers || 0;
+  const pg = d.page || {};
+  const best = d.searches.length ? Math.min(...d.searches.map((s) => s.best_position)) : null;
+
+  const runs = d.runs.first ? `${d.runs.answers} answers, ${d.runs.first} to ${d.runs.last}` : "no runs yet";
+  let html = `<section class="panel"><div class="verdict ${tone}">${esc(v)}</div>
+    <div class="meta">${esc(d.brand.name)} (${d.brand.is_client ? "client" : "competitor"}) · ${esc(d.category)} ·
+    ${esc(runs)}<br>${esc(d.url)}</div></section>`;
+
+  html += `<div class="tiles">
+    <div class="tile"><b>${d.searches.length}</b><span>Independent searches that found this page</span></div>
+    <div class="tile"><b>${best ?? "–"}</b><span>best position (top ${d.eligible_top_n} = proxy threshold)</span></div>
+    <div class="tile"><b>${cited}</b><span>times cited in an answer</span></div>
+    <div class="tile"><b>${winning}<span> / ${total}</span></b><span>answers where ${esc(d.brand.name)} wins top 3</span></div>
+    <div class="tile"><b>${pg.error ? "–" : pg.faq_questions}</b><span>FAQ questions in schema</span></div>
+  </div>`;
+
+  html += panel("Searches that found this page", "The queries the AI itself ran, replayed through search.",
+    table(d.searches, [
+      {h: "AI search", k: "search_query"},
+      {h: "Best pos.", n: 1, f: (r) => `<span class="${r.best_position <= d.eligible_top_n ? "good" : "warn"}">${r.best_position}</span>`},
+      {h: "Times", k: "times", n: 1},
+      {h: "Prompts", f: (r) => chips(r.prompts)},
+      {h: "Engines", f: (r) => chips(r.engines)},
+    ], "No stored independent search hits for this page."));
+
+  if (d.cited.length) {
+    html += panel("Where it was cited", "", table(d.cited, [
+      {h: "Prompt", k: "prompt_id"}, {h: "Engine", k: "engine"}, {h: "Times", k: "times", n: 1}], ""));
+  }
+
+  html += panel(`${d.brand.name}: diagnosis per answer`, "Brand-level, across every prompt, engine and mode.",
+    table(d.diagnoses, [
+      {h: "Diagnosis", f: (r) => `<span class="diag ${r.diagnosis === "winning" ? "good" : ""}">${esc(r.diagnosis)}</span>`},
+      {h: "Answers", k: "answers", n: 1},
+      {h: "What it means", k: "meaning"},
+      {h: "Prompts", f: (r) => chips(r.prompts)},
+    ], "No diagnosed answers for this brand yet."));
+
+  html += panel("Independent searches without a brand hit", "Proxy gaps: no brand hit in the sampled independent results; cause unknown.",
+    table(d.missed_searches, [{h: "AI search", k: "search_query"}, {h: "Answers", k: "answers", n: 1}],
+      "No matching proxy-gap records; this does not establish retrieval coverage."));
+
+  html += `<div class="grid2">` +
+    panel("Who wins instead", "Brands recommended in answers you didn't win.",
+      table(d.winners, [
+        {h: "Brand", f: (r) => esc(r.name) + (r.tracked ? "" : ' <span class="chip">untracked</span>')},
+        {h: "Answers", k: "answers", n: 1}], "Nobody else was recommended.")) +
+    panel("Sources cited instead", "Provider-reported citation domains in answers without a top-3 brand recommendation.",
+      table(d.sources_instead, [
+        {h: "Domain", k: "domain"}, {h: "Type", f: (r) => `<span class="chip">${esc(r.domain_type)}</span>`},
+        {h: "Citations", k: "citations", n: 1}], "No other sources cited.")) + `</div>`;
+
+  html += `<p>${esc(d.evidence_limitations || "")} ${esc(d.diagnosis_scope || "")}</p>`;
+  html += panel("Winning claims vs this page", "Extractor-reported claims and exact phrase matches only. These do not verify product benefits; missing claims must not be added without verified brand evidence.",
+    table(d.winning_claims, [
+      {h: "Claim", k: "claim"}, {h: "Credited", k: "times", n: 1},
+      {h: "On this page", f: (r) => r.on_page == null ? '<span class="muted">unknown</span>'
+        : r.on_page ? '<span class="good">yes</span>' : '<span class="bad">missing</span>'},
+    ], "No winning claims recorded yet."));
+
+  html += panel("Live page check", "", pg.error
+    ? `<p class="bad">Could not fetch the page: ${esc(pg.error)}</p>`
+    : `<p><b>${esc(pg.title || "(no title)")}</b></p>
+       <p class="muted">${pg.words} words · ${pg.faq_questions} FAQ questions in schema</p>
+       <p>${pg.schema_types.length ? chips(pg.schema_types) : '<span class="bad">No structured data (JSON-LD) found.</span>'}</p>`);
+  return html;
+}
+
+async function analyze(url) {
+  const token = $("token").value.trim();
+  if (!token) { $("tokenBox").open = true; $("token").focus(); return; }
+  store.set("shelfsight-token", token);
+  $("go").disabled = true;
+  $("out").innerHTML = `<section class="panel muted">Looking up stored runs and checking the live page…</section>`;
+  try {
+    const r = await fetch(`/page?url=${encodeURIComponent(url)}`, {headers: {"X-ShelfSight-Token": token}});
+    const d = await r.json().catch(() => ({error: `HTTP ${r.status}`}));
+    if (r.status === 401) $("tokenBox").open = true;
+    $("out").innerHTML = r.ok ? render(d) : `<section class="panel err">${esc(d.error || `HTTP ${r.status}`)}</section>`;
+    history.replaceState(null, "", `?url=${encodeURIComponent(url)}`);
+  } catch (e) {
+    $("out").innerHTML = `<section class="panel err">Bridge unreachable: ${esc(e.message)}</section>`;
+  } finally {
+    $("go").disabled = false;
+  }
+}
+
+$("f").addEventListener("submit", (e) => { e.preventDefault(); analyze($("f").url.value.trim()); });
+const initial = new URLSearchParams(location.search).get("url");
+if (initial) { $("f").url.value = initial; analyze(initial); }
+</script>
+</body>
+</html>

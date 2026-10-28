@@ -5,14 +5,23 @@ from shelfsight.store import Store
 
 MEANING = {
     "winning": "Recommended in the top 3",
-    "recommended_not_top3": "Recommended, but below the top 3: strengthen the claim",
-    "named_not_recommended": "Named, not recommended: the claim the buyer asked about is missing",
-    "not_named": "Not named, and no retrieval to diagnose (no-web answer, or the model didn't search)",
-    "cited_not_named": "Our page was cited, but the answer names a rival: our page feeds their win",
-    "probe_missing": "The retrieval probe failed: re-probe before drawing conclusions",
-    "eligible_not_cited": "In the candidate set, but not chosen: format, authority, extractability",
-    "not_eligible": "Not in the candidate set: content gap, no page for this question",
+    "recommended_not_top3": "Recommended; rank is below 3 or unknown",
+    "named_not_recommended": "Named; recommendation is false or unknown; reason unknown",
+    "not_named": "Not named; no search queries reported; reason unknown",
+    "cited_not_named": "Brand URL reported as cited; brand not named; influence unknown",
+    "probe_missing": "Independent search probe unavailable; retrieval unknown",
+    "eligible_not_cited": "Found in independent search results; no brand citation reported; reason unknown",
+    "not_eligible": "Not found in sampled independent search results; engine retrieval unknown",
 }
+
+LIMITATIONS = (
+    "Observations: returned answers and provider-reported citations. Mentions, recommendations and ranks "
+    "are extractor interpretations, not verified product facts. Proxy: independent search results "
+    "approximate retrieval; they do not reveal the engine's candidate set. Hypotheses about content, "
+    "authority or selection require separate evidence. Missing citations do not establish training-data "
+    "reliance. No calibrated confidence or causal effect is claimed. API answers may differ from consumer apps. "
+    "Visibility and citations are separate from referral traffic and purchases: business impact has not been measured."
+)
 
 
 def diagnosis_summary(store: Store, workspace: Workspace, settings: Settings, run_date: date) -> str:
@@ -32,4 +41,4 @@ def diagnosis_summary(store: Store, workspace: Workspace, settings: Settings, ru
              "| Diagnosis | Answers | Meaning | Prompts |", "|---|---|---|---|"]
     lines += [f"| {r['diagnosis']} | {r['answers']} | {MEANING[r['diagnosis']]} | {', '.join(r['prompts'])} |"
               for r in rows]
-    return "\n".join(lines) + "\n"
+    return "\n".join(lines) + "\n\n" + LIMITATIONS + "\n"

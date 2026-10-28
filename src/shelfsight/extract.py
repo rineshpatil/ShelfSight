@@ -1,4 +1,6 @@
 from typing import Literal
+import hashlib
+import json
 
 from pydantic import BaseModel
 
@@ -43,7 +45,9 @@ PROMPT = """You extract brand mentions from a shopping assistant's answer.
 Known brands in this category: {brands}.
 List every brand the answer names, known or not, in the order the answer presents them.
 rank: 1 for the first brand presented as a pick, 2 for the next, and so on; null if the brand is only mentioned in passing.
-In a comparison, the brand the answer favours is rank 1 and the other compared brands follow in order of preference.
+In a comparison, the brand the answer favours is rank 1 only when it explicitly recommends that choice.
+Do not invent a preference order for the other brands. Negative mentions and unranked alternatives have rank null.
+Common words such as "minimalist routine" are not brand mentions without brand context.
 is_recommended: true only if the answer suggests the buyer choose it.
 sentiment: how the answer describes the brand.
 claims: short product claims attached to the brand, lowercase, e.g. "no white cast", "spf 50".
@@ -87,8 +91,16 @@ def reconcile(response: dict, ext: Extraction, hits: list[dict], brands: list[Br
 
 def extract_mentions(response: dict, llm, brands: list[Brand], extractor_version: str) -> list[dict]:
     prompt = PROMPT.format(brands=", ".join(b.name for b in brands), answer=response["response_text"])
-    ext = Extraction.model_validate(llm.generate_json(prompt, SCHEMA))
-    return reconcile(response, ext, dictionary_hits(response["response_text"], brands), brands, extractor_version)
+    output = llm.generate_json(prompt, SCHEMA)
+    ext = Extraction.model_validate(output)
+    rows = reconcile(response, ext, dictionary_hits(response["response_text"], brands), brands, extractor_version)
+    provenance = json.dumps({"model": getattr(llm, "model", "unknown"), "prompt": prompt,
+        "schema": SCHEMA, "output": output,
+        "answer_sha256": hashlib.sha256(response["response_text"].encode()).hexdigest(),
+        "brand_config": [b.model_dump() for b in brands]}, sort_keys=True)
+    for row in rows:
+        row["extraction_provenance"] = provenance
+    return rows
 
 
 def run_extract(*, store: Store, workspace: Workspace, llm, extractor_version: str, run_date) -> dict:

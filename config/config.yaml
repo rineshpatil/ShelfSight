@@ -23,9 +23,9 @@ extractor:
   engine: nova                     # moved off Gemini so its free daily cap goes to answers
   model: us.amazon.nova-2-lite-v1:0
   region: us-east-1
-  version: "ext-2"                 # ext-2: Nova extractor, comparison winner gets rank 1
+  version: "ext-3-evidence"         # explicit preference only; full extraction replay provenance
 
-joiner_version: "join-1"
+joiner_version: "join-2-evidence"
 
 searxng:
   url: http://localhost:8888

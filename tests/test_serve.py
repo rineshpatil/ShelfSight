@@ -22,7 +22,12 @@ def bridge():
     def report(workspace, day):
         return f"# report {workspace} {day}"
 
-    server = make_server(TOKEN, pipeline=pipeline, report=report, host="127.0.0.1", port=0)
+    def page(url):
+        if url == "bad":
+            raise ValueError("url must be http or https")
+        return {"tracked": False, "url": url}
+
+    server = make_server(TOKEN, pipeline=pipeline, report=report, page=page, host="127.0.0.1", port=0)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     yield f"http://127.0.0.1:{server.server_address[1]}", calls
@@ -82,6 +87,31 @@ def test_report_rejects_a_bad_date(bridge):
     url, _ = bridge
     r = httpx.get(f"{url}/report", params={"workspace": "dotandkey", "date": "yesterday"}, headers=auth())
     assert r.status_code == 400
+
+
+def test_ui_is_served_without_a_token(bridge):
+    url, _ = bridge
+    r = httpx.get(f"{url}/")
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("text/html")
+    assert "ShelfSight Page Lookup" in r.text
+
+
+def test_page_needs_a_token(bridge):
+    url, _ = bridge
+    assert httpx.get(f"{url}/page", params={"url": "https://x.test/"}).status_code == 401
+
+
+def test_page_returns_the_lookup(bridge):
+    url, _ = bridge
+    r = httpx.get(f"{url}/page", params={"url": "https://x.test/"}, headers=auth())
+    assert (r.status_code, r.json()) == (200, {"tracked": False, "url": "https://x.test/"})
+
+
+@pytest.mark.parametrize("target", ["", "bad", "https://x.test/" + "a" * 3000])
+def test_page_rejects_bad_urls(bridge, target):
+    url, _ = bridge
+    assert httpx.get(f"{url}/page", params={"url": target}, headers=auth()).status_code == 400
 
 
 def test_alerts_for_a_clean_run_is_empty():

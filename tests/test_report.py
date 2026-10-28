@@ -21,7 +21,7 @@ def test_summary_groups_client_rows_by_diagnosis(tmp_path):
     assert "3 answers diagnosed for Dot & Key." in md
     table = [line for line in md.splitlines() if line.startswith(("| not_eligible", "| winning"))]
     assert table == [
-        "| not_eligible | 2 | Not in the candidate set: content gap, no page for this question | P1, P2 |",
+        "| not_eligible | 2 | Not found in sampled independent search results; engine retrieval unknown | P1, P2 |",
         "| winning | 1 | Recommended in the top 3 | P3 |",
     ]
 

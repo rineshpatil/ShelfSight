@@ -39,7 +39,7 @@ class GeminiEngine:
         usage = data.get("usageMetadata", {})
         return EngineResult(
             text=_text(cand),
-            model=self.model,
+            model=data.get("modelVersion", self.model),
             web_search_queries=gm.get("webSearchQueries", []),
             citations=[Citation(url=self._resolve(w), title=w.get("title", ""), position=i)
                        for i, w in enumerate(chunks, start=1)],
@@ -59,7 +59,5 @@ class GeminiEngine:
 
     def _resolve(self, web: dict) -> str:
         url = resolve_grounding_url(web["uri"], self._client)
-        title = web.get("title", "")
-        if GROUNDING_REDIRECT_HOST in url and "." in title:
-            return f"https://{title}/"  # unresolved redirect: the chunk title is the source domain
+        # Retain an unresolved URL. A title that resembles a domain is not evidence of a page citation.
         return url

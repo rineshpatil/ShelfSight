@@ -46,7 +46,10 @@ def run_collect(*, settings: Settings, workspace: Workspace, prompts: list[Promp
                    "run_date": run_date, "prompt_id": p.prompt_id, "prompt_version": p.version,
                    "intent": p.intent, "priority": p.priority, "engine": cfg.name, "model": cfg.model,
                    "mode": mode, "sample_n": 1, "system_prompt": settings.system_prompt,
-                   "temperature": cfg.temperature, "created_at": utcnow()}
+                   "temperature": cfg.temperature, "created_at": utcnow(), "prompt_text": p.prompt_text,
+                   "collection_settings": json.dumps({"engine": cfg.model_dump(),
+                       "probe": settings.searxng.model_dump(), "eligible_top_n": settings.eligible_top_n}, sort_keys=True),
+                   "probe_status": "not_attempted"}
             if cfg.name in exhausted:
                 responses.append(row | {"status": "skipped_quota"})
                 skipped += 1
@@ -77,7 +80,9 @@ def run_collect(*, settings: Settings, workspace: Workspace, prompts: list[Promp
                     candidates += candidate_rows(probe, row, res.web_search_queries,
                                                  settings.searxng.max_queries_per_response,
                                                  workspace.brands, settings.domain_types)
+                    row["probe_status"] = "ok"  # includes a successful empty search
                 except Exception:  # no candidate rows → the funnel says probe_missing, not a false not_eligible
+                    row["probe_status"] = "error"
                     probe_errors += 1
     finally:  # keep whatever was collected, even if the run is interrupted
         store.write("raw_responses", responses)

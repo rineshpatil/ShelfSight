@@ -1,0 +1,118 @@
+[
+  {
+    "id": "ambiguous",
+    "response_text": "Keep a minimalist routine; no specific brand is recommended.",
+    "expected": [],
+    "output": {
+      "brands": [],
+      "answer_type": "other"
+    },
+    "workspace": "dotandkey",
+    "label_status": "reviewed_synthetic",
+    "expected_citations": [],
+    "predicted_citations": []
+  },
+  {
+    "id": "negative",
+    "response_text": "I do not recommend Dot & Key for this request. Neutrogena is mentioned for context only.",
+    "expected": [
+      {
+        "brand_id": "dotandkey",
+        "rank": null,
+        "is_recommended": false
+      },
+      {
+        "brand_id": "neutrogena",
+        "rank": null,
+        "is_recommended": false
+      }
+    ],
+    "output": {
+      "brands": [
+        {
+          "name": "Dot & Key",
+          "is_recommended": false
+        },
+        {
+          "name": "Neutrogena",
+          "is_recommended": false
+        }
+      ],
+      "answer_type": "other"
+    },
+    "workspace": "dotandkey",
+    "label_status": "reviewed_synthetic",
+    "expected_citations": [],
+    "predicted_citations": []
+  },
+  {
+    "id": "comparison",
+    "response_text": "Choose Re'equil first. Dot & Key is an alternative, but I cannot rank it or verify oily-skin suitability.",
+    "expected": [
+      {
+        "brand_id": "reequil",
+        "rank": 1,
+        "is_recommended": true
+      },
+      {
+        "brand_id": "dotandkey",
+        "rank": null,
+        "is_recommended": false
+      }
+    ],
+    "output": {
+      "brands": [
+        {
+          "name": "Re'equil",
+          "rank": 1,
+          "is_recommended": true
+        },
+        {
+          "name": "Dot & Key",
+          "is_recommended": false
+        }
+      ],
+      "answer_type": "comparison"
+    },
+    "workspace": "dotandkey",
+    "label_status": "reviewed_synthetic",
+    "expected_citations": [],
+    "predicted_citations": []
+  },
+  {
+    "id": "refusal",
+    "response_text": "I cannot recommend any sunscreen from the supplied information.",
+    "expected": [],
+    "output": {
+      "brands": [],
+      "answer_type": "refusal"
+    },
+    "workspace": "dotandkey",
+    "label_status": "reviewed_synthetic",
+    "expected_citations": [],
+    "predicted_citations": []
+  },
+  {
+    "id": "missing_fields",
+    "response_text": "Dot & Key sunscreen is mentioned, with no preference stated.",
+    "expected": [
+      {
+        "brand_id": "dotandkey",
+        "rank": null,
+        "is_recommended": false
+      }
+    ],
+    "output": {
+      "brands": [
+        {
+          "name": "Dot & Key"
+        }
+      ],
+      "answer_type": "other"
+    },
+    "workspace": "dotandkey",
+    "label_status": "reviewed_synthetic",
+    "expected_citations": [],
+    "predicted_citations": []
+  }
+]

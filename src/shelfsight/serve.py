@@ -3,6 +3,8 @@
 n8n reaches it at http://host.docker.internal:8765. It binds to 127.0.0.1 only; Docker Desktop still
 routes the container there, so the bridge is never exposed to the network. Every endpoint except
 /health needs the X-ShelfSight-Token header. All run logic stays here; n8n only schedules and notifies.
+
+GET / is the page-lookup UI: a static page with no data in it. Its requests to /page carry the token.
 """
 import hmac
 import json
@@ -10,11 +12,14 @@ import re
 import threading
 from datetime import date
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 _WORKSPACE_ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")  # becomes a file path, so no dots or slashes
 MIN_COVERAGE = 0.95
 MAX_BODY = 64 * 1024  # a /run body is a few bytes; refuse anything that isn't
+MAX_URL = 2048
+UI = Path(__file__).with_name("page.html")
 
 
 def alerts_for(run: dict, extract: dict) -> list[str]:
@@ -79,7 +84,15 @@ def default_report(workspace_id: str, day: date) -> str:
     return diagnosis_summary(Store("data/lake"), load_workspace(workspace_id), load_settings(), day)
 
 
-def make_server(token: str, *, pipeline=run_pipeline, report=default_report,
+def default_page(url: str) -> dict:
+    from shelfsight.config import load_settings
+    from shelfsight.page import lookup
+    from shelfsight.store import Store
+
+    return lookup(url, Store("data/lake"), load_settings())
+
+
+def make_server(token: str, *, pipeline=run_pipeline, report=default_report, page=default_page,
                 host: str = "127.0.0.1", port: int = 8765) -> ThreadingHTTPServer:
     busy = threading.Lock()  # one paid run at a time
 
@@ -102,11 +115,23 @@ def make_server(token: str, *, pipeline=run_pipeline, report=default_report,
             url = urlsplit(self.path)
             if url.path == "/health":
                 return self._send(200, {"status": "ok"})
+            if url.path == "/":
+                return self._send(200, UI.read_text(encoding="utf-8"), "text/html")
             if not self._authorized():
                 return
+            q = {k: v[0] for k, v in parse_qs(url.query).items()}
+            if url.path == "/page":
+                target = q.get("url", "")
+                if not target or len(target) > MAX_URL:
+                    return self._send(400, {"error": "url is required"})
+                try:
+                    return self._send(200, page(target))
+                except ValueError as e:
+                    return self._send(400, {"error": str(e)})
+                except Exception as e:
+                    return self._send(500, {"error": f"lookup failed: {type(e).__name__}: {e}"})
             if url.path != "/report":
                 return self._send(404, {"error": "not found"})
-            q = {k: v[0] for k, v in parse_qs(url.query).items()}
             workspace = q.get("workspace", "")
             try:
                 day = date.fromisoformat(q["date"]) if "date" in q else None
