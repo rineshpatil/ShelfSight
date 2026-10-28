@@ -7,3 +7,5 @@ data/lake/
 AI Visibility Tracker — Project Blueprint.md
 infra/cdk/cdk.context.json
 infra/cdk/cdk.out/
+# Reproducible local reliability example artifacts
+/data/reliability-example-verified/

@@ -17,6 +17,7 @@ WS = "dotandkey"
     (dict(is_named=True), "named_not_recommended"),
     (dict(retrieval=False), "not_named"),
     (dict(is_cited=True), "cited_not_named"),
+    (dict(is_cited=True, retrieval=False), "cited_not_named"),
     (dict(probed=False), "probe_missing"),
     (dict(is_eligible=True), "eligible_not_cited"),
     (dict(), "not_eligible"),

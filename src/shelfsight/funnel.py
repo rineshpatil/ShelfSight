@@ -1,4 +1,5 @@
 from collections import Counter
+import json
 from datetime import date
 
 from shelfsight.config import Settings, Workspace
@@ -17,10 +18,10 @@ def diagnose(*, retrieval: bool, probed: bool, is_eligible: bool, is_cited: bool
         return "recommended_not_top3"
     if is_named:
         return "named_not_recommended"
-    if not retrieval:
-        return "not_named"
     if is_cited:
         return "cited_not_named"
+    if not retrieval:
+        return "not_named"
     if not probed:
         return "probe_missing"
     if is_eligible:
@@ -35,7 +36,7 @@ WITH extracted AS (
 ),
 resp AS (
     SELECT response_id, workspace, run_date, engine, mode, prompt_id, prompt_version, intent, priority,
-           coalesce(len(web_search_queries), 0) > 0 AS searched
+           probe_status, coalesce(len(web_search_queries), 0) > 0 AS searched
     FROM raw_responses
     WHERE workspace = $ws AND run_date = $d AND status = 'ok'
       AND response_id IN (SELECT response_id FROM extracted)
@@ -59,7 +60,7 @@ ment AS (
     GROUP BY 1, 2
 )
 SELECT r.*, b.brand_id,
-       p.response_id IS NOT NULL AS probed,
+       (r.probe_status = 'ok' OR (r.probe_status IS NULL AND p.response_id IS NOT NULL)) AS probed,
        e.response_id IS NOT NULL AS is_eligible,
        coalesce(e.eligible_n, 0) AS eligible_n,
        c.response_id IS NOT NULL AS is_cited,
@@ -100,10 +101,16 @@ def run_funnel(*, store: Store, workspace: Workspace, settings: Settings, run_da
             "priority": r["priority"], "brand_id": r["brand_id"], "is_client": r["brand_id"] == client_id,
             "response_id": r["response_id"],
             "is_eligible": r["is_eligible"] if probed else None,
-            "is_cited": r["is_cited"] if retrieval else None,
+            "is_cited": r["is_cited"] if retrieval or r["is_cited"] else None,
             "is_named": r["is_named"], "is_recommended": r["is_recommended"], "rank": r["rank"],
             "eligible_n": r["eligible_n"] if probed else None,
             "diagnosis": diagnosis, "extractor_version": ev, "joiner_version": jv,
+            "observations": json.dumps({"response_id": r["response_id"], "search_queries_reported": r["searched"],
+                "brand_citation_reported": r["is_cited"], "extracted_named": r["is_named"],
+                "extracted_recommended": r["is_recommended"], "extracted_rank": r["rank"]}),
+            "proxy_measurements": json.dumps({"source": "independent_search", "top_n": settings.eligible_top_n,
+                "found": r["is_eligible"] if probed else None, "engine_retrieval": "unknown"}),
+            "causal_hypotheses": "[]", "confidence_status": "not_calibrated",
         })
         if r["brand_id"] == client_id:
             client_counts[diagnosis] += 1

@@ -71,6 +71,17 @@ def test_happy_path_writes_every_table(tmp_path):
     assert store.rows("SELECT input_tokens, output_tokens FROM runs") == [{"input_tokens": 15, "output_tokens": 25}]
 
 
+def test_empty_successful_probe_is_not_a_failed_probe(tmp_path):
+    class EmptyProbe:
+        def search(self, query):
+            return []
+    _, store = run(tmp_path, FakeEngine(WEB), [prompt("P1")], modes=["web"], probe=EmptyProbe())
+    row = store.rows("SELECT probe_status, prompt_text, collection_settings FROM raw_responses")[0]
+    assert row["probe_status"] == "ok"
+    assert row["prompt_text"] == "question P1"
+    assert '"language": "en-IN"' in row["collection_settings"]
+
+
 def test_persistent_429_exhausts_engine_and_skips_the_rest(tmp_path):
     engine = FakeEngine(NO_WEB, RetryableError(429, "quota"))
     run_row, store = run(tmp_path, engine, [prompt("P1"), prompt("P2"), prompt("P3")], modes=["no_web"])

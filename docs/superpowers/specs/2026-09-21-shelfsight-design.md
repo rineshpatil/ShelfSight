@@ -1,4 +1,8 @@
-# ShelfSight — Design Spec
+# ShelfSight — Historical Design Spec
+
+> Superseded for evidence and intervention measurement by `docs/reliability-assessment.md` and the current README.
+> This document records the original proposal, including unverified causal claims and heuristic verdicts.
+> Its candidate-set, training-memory and clear/directional assertions must not be used as findings.
 
 2026-09-21 · Status: sections 1–3 discussed with the product owner; sections 4–5 are drafted defaults, not yet reviewed.
 

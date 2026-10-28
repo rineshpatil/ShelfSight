@@ -12,7 +12,7 @@ from pathlib import Path
 import httpx
 
 from shelfsight.config import Brand, Settings, Workspace, load_workspace
-from shelfsight.report import MEANING
+from shelfsight.report import MEANING, LIMITATIONS
 from shelfsight.store import Store
 from shelfsight.urls import brand_for_url, normalize_url
 
@@ -138,6 +138,9 @@ def lookup(url: str, store: Store, settings: Settings, *, root: str | Path = "co
     names = {b.id: b.name for b in ws.brands}
     return {
         "tracked": True, "url": url, "workspace": ws.id, "category": ws.category,
+        "evidence_limitations": LIMITATIONS,
+        "diagnosis_scope": "brand across all pages; not a diagnosis of this particular product",
+        "product_facts": "unverified; exact phrase presence does not establish suitability or benefits",
         "brand": {"id": brand.id, "name": brand.name, "is_client": brand.is_client},
         "runs": span,
         "eligible_top_n": settings.eligible_top_n,

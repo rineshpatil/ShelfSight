@@ -75,7 +75,7 @@ class Store:
             empty = f"CREATE VIEW {table} AS SELECT * FROM (SELECT {typed_nulls}) WHERE false"
             if self.is_remote:
                 try:  # cheapest way to ask S3 whether the prefix has any files yet
-                    con.execute(f"CREATE VIEW {table} AS SELECT * FROM read_parquet('{self.glob(table)}', "
+                    con.execute(f"CREATE VIEW {table} AS SELECT {typed_nulls} WHERE false UNION ALL BY NAME SELECT * FROM read_parquet('{self.glob(table)}', "
                                 "union_by_name = true, hive_partitioning = false)")
                     con.execute(f"SELECT 1 FROM {table} LIMIT 1")
                 except duckdb.Error:
@@ -84,7 +84,7 @@ class Store:
                 continue
             base = self.root / table
             if base.exists() and any(base.rglob("*.parquet")):
-                con.execute(f"CREATE VIEW {table} AS SELECT * FROM read_parquet('{self.glob(table)}', "
+                con.execute(f"CREATE VIEW {table} AS SELECT {typed_nulls} WHERE false UNION ALL BY NAME SELECT * FROM read_parquet('{self.glob(table)}', "
                             "union_by_name = true, hive_partitioning = false)")
             else:
                 con.execute(empty)

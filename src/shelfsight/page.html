@@ -101,10 +101,10 @@ function verdict(d) {
   const cited = d.cited.reduce((a, c) => a + c.times, 0);
   // a citation outranks the probe: the replay only approximates the model's index, so a cited page can be unseen
   if (cited && !seen) return [`Cited ${cited} time${cited > 1 ? "s" : ""}, though the search replay never surfaced it.`, "good"];
-  if (!seen) return ["This page never reached the candidate set for any AI search.", "bad"];
+  if (!seen) return ["This page was not found in the sampled independent searches; engine retrieval is unknown.", "bad"];
   if (!cited && best > d.eligible_top_n)
-    return [`Found by ${seen} AI search${seen > 1 ? "es" : ""}, but never in the top ${d.eligible_top_n}.`, "warn"];
-  if (!cited) return [`In the candidate set for ${seen} AI search${seen > 1 ? "es" : ""}, but never cited.`, "warn"];
+    return [`Found in ${seen} independent search${seen > 1 ? "es" : ""}, but never in the top ${d.eligible_top_n}.`, "warn"];
+  if (!cited) return [`In results for ${seen} independent search${seen > 1 ? "es" : ""}, but never cited.`, "warn"];
   return [`Cited ${cited} time${cited > 1 ? "s" : ""}, and found by ${seen} AI search${seen > 1 ? "es" : ""}.`, "good"];
 }
 
@@ -127,8 +127,8 @@ function render(d) {
     ${esc(runs)}<br>${esc(d.url)}</div></section>`;
 
   html += `<div class="tiles">
-    <div class="tile"><b>${d.searches.length}</b><span>AI searches that found this page</span></div>
-    <div class="tile"><b>${best ?? "–"}</b><span>best position (top ${d.eligible_top_n} = eligible)</span></div>
+    <div class="tile"><b>${d.searches.length}</b><span>Independent searches that found this page</span></div>
+    <div class="tile"><b>${best ?? "–"}</b><span>best position (top ${d.eligible_top_n} = proxy threshold)</span></div>
     <div class="tile"><b>${cited}</b><span>times cited in an answer</span></div>
     <div class="tile"><b>${winning}<span> / ${total}</span></b><span>answers where ${esc(d.brand.name)} wins top 3</span></div>
     <div class="tile"><b>${pg.error ? "–" : pg.faq_questions}</b><span>FAQ questions in schema</span></div>
@@ -141,7 +141,7 @@ function render(d) {
       {h: "Times", k: "times", n: 1},
       {h: "Prompts", f: (r) => chips(r.prompts)},
       {h: "Engines", f: (r) => chips(r.engines)},
-    ], "None yet. The page was not in the results for any search the models ran."));
+    ], "No stored independent search hits for this page."));
 
   if (d.cited.length) {
     html += panel("Where it was cited", "", table(d.cited, [
@@ -156,21 +156,22 @@ function render(d) {
       {h: "Prompts", f: (r) => chips(r.prompts)},
     ], "No diagnosed answers for this brand yet."));
 
-  html += panel("Searches where the brand had no page", "Content gaps: the model searched this, and nothing of yours came up.",
+  html += panel("Independent searches without a brand hit", "Proxy gaps: no brand hit in the sampled independent results; cause unknown.",
     table(d.missed_searches, [{h: "AI search", k: "search_query"}, {h: "Answers", k: "answers", n: 1}],
-      "No not_eligible answers. Every search surfaced one of your pages."));
+      "No matching proxy-gap records; this does not establish retrieval coverage."));
 
   html += `<div class="grid2">` +
     panel("Who wins instead", "Brands recommended in answers you didn't win.",
       table(d.winners, [
         {h: "Brand", f: (r) => esc(r.name) + (r.tracked ? "" : ' <span class="chip">untracked</span>')},
         {h: "Answers", k: "answers", n: 1}], "Nobody else was recommended.")) +
-    panel("Sources cited instead", "Pages the AI trusted in answers you didn't win.",
+    panel("Sources cited instead", "Provider-reported citation domains in answers without a top-3 brand recommendation.",
       table(d.sources_instead, [
         {h: "Domain", k: "domain"}, {h: "Type", f: (r) => `<span class="chip">${esc(r.domain_type)}</span>`},
         {h: "Citations", k: "citations", n: 1}], "No other sources cited.")) + `</div>`;
 
-  html += panel("Winning claims vs this page", "Claims credited to the brands that won, and whether this page states them in those words.",
+  html += `<p>${esc(d.evidence_limitations || "")} ${esc(d.diagnosis_scope || "")}</p>`;
+  html += panel("Winning claims vs this page", "Extractor-reported claims and exact phrase matches only. These do not verify product benefits; missing claims must not be added without verified brand evidence.",
     table(d.winning_claims, [
       {h: "Claim", k: "claim"}, {h: "Credited", k: "times", n: 1},
       {h: "On this page", f: (r) => r.on_page == null ? '<span class="muted">unknown</span>'

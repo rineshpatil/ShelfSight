@@ -37,7 +37,7 @@ def test_web_mode_parses_queries_and_resolves_citations():
     assert res.web_search_queries == ["best sunscreen for oily skin india under 500"]
     assert [(c.position, c.url) for c in res.citations] == [
         (1, "https://www.nykaa.com/dot-key-sunscreen/p/1"),
-        (2, "https://reddit.com/"),  # unresolved redirect falls back to the chunk title
+        (2, REDIRECT + "BBB"),  # unresolved URLs must not become invented page citations
     ]
     assert (res.input_tokens, res.output_tokens) == (42, 180)
     assert "Minimalist" in res.text
@@ -50,6 +50,13 @@ def test_no_web_mode_sends_no_tools():
         res = engine(c).ask("q", "sys", mode="no_web")
     assert "tools" not in json.loads(route.calls[0].request.content)
     assert (res.text, res.citations, res.web_search_queries) == ("hi", [], [])
+
+
+@respx.mock
+def test_provider_model_version_is_retained():
+    respx.post(URL).mock(return_value=httpx.Response(200, json={"modelVersion": "reported-model-build-42"}))
+    with httpx.Client() as client:
+        assert engine(client).ask("q", "sys", "web").model == "reported-model-build-42"
 
 
 @respx.mock
